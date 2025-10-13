@@ -5,12 +5,11 @@ namespace Icinga\Module\Perfdatagraphs\Widget;
 use ipl\Html\BaseHtmlElement;
 use ipl\Html\Html;
 use ipl\I18n\Translation;
+use ipl\Web\Url;
 use ipl\Web\Widget\Icon;
 
 /**
  * The QuickActions adds links for selecting the duration.
- * We use JavaScript to read the data attributes
- * when the links are clicked.
  */
 class QuickActions extends BaseHtmlElement
 {
@@ -22,26 +21,29 @@ class QuickActions extends BaseHtmlElement
 
     protected $defaultCurrentRange;
 
+    // The URL parameter we append to the URL to specify the duration the backend should fetch
+    protected $rangeURLParam = 'perfdatagraphs.duration';
+
     /**
      * @param string $defaultCurrentRange Value for the "Current" time range button
+     * @param string $baseURL URL to use as base for the links. We get this from the request
+     * so that we can support IcingaDB and the monitoring module
      */
-    public function __construct(string $defaultCurrentRange = 'PT12H')
+    public function __construct($baseURL, string $defaultCurrentRange = 'PT12H')
     {
         $this->defaultCurrentRange = $defaultCurrentRange;
+        $this->baseURL = $baseURL;
     }
 
     /**
      * Implement the BaseHtmlElement assemble method.
-     * Hint: We do not use a loop to facilitate translation.
      */
     protected function assemble(): void
     {
         $current = Html::tag(
             'a',
             [
-                'href' => '#',
-                'id' => 'perfdatagraphs-default-timerange',
-                'data-duration' => $this->defaultCurrentRange,
+                'href' => $this->baseURL->overwriteParams([$this->rangeURLParam => $this->defaultCurrentRange])->getAbsoluteUrl(),
                 'class' => 'action-link',
                 'title' => $this->translate('Show the current performance data'),
             ],
@@ -53,8 +55,7 @@ class QuickActions extends BaseHtmlElement
         $day = Html::tag(
             'a',
             [
-                'href' => '#',
-                'data-duration' => 'P1D',
+                'href' => $this->baseURL->overwriteParams([$this->rangeURLParam => 'P1D'])->getAbsoluteUrl(),
                 'class' => 'action-link',
                 'title' => $this->translate('Show performance data for the last day'),
             ],
@@ -64,8 +65,7 @@ class QuickActions extends BaseHtmlElement
         $week = Html::tag(
             'a',
             [
-                'href' => '#',
-                'data-duration' => 'P7D',
+                'href' => $this->baseURL->overwriteParams([$this->rangeURLParam => 'P7D'])->getAbsoluteUrl(),
                 'class' => 'action-link',
                 'title' => $this->translate('Show performance data for the last week'),
             ],
@@ -75,28 +75,15 @@ class QuickActions extends BaseHtmlElement
         $month = Html::tag(
             'a',
             [
-                'href' => '#',
-                'data-duration' => 'P30D',
+                'href' => $this->baseURL->overwriteParams([$this->rangeURLParam => 'P31D'])->getAbsoluteUrl(),
                 'class' => 'action-link',
                 'title' => $this->translate('Show performance data for the last month'),
             ],
             [ new Icon('calendar'), $this->translate('Month') ]
         );
 
-        $year = Html::tag(
-            'a',
-            [
-                'href' => '#',
-                'data-duration' => 'P1Y',
-                'class' => 'action-link',
-                'title' => $this->translate('Show performance data for the last year'),
-            ],
-            [ new Icon('calendar'), $this->translate('Year') ]
-        );
-
         $this->add(Html::tag('li', $day));
         $this->add(Html::tag('li', $week));
         $this->add(Html::tag('li', $month));
-        $this->add(Html::tag('li', $year));
     }
 }

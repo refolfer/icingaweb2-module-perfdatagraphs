@@ -17,6 +17,7 @@ use Exception;
 
 /**
  * PerfdataSource contains everything related to fetching and transforming data.
+ * The idea is that you use this behind the scenes to get the data.
  */
 trait PerfdataSource
 {
@@ -34,6 +35,29 @@ trait PerfdataSource
      */
     public function fetchDataViaHook(string $host, string $service, string $checkcommand, string $duration, bool $isHostCheck): PerfdataResponse
     {
+        $cache = PerfdataCache::instance('perfdatagraphs');
+
+        // Load the module's configuration.
+        $config = ModuleConfig::getConfig();
+
+        $cacheDurationInSeconds = $config['cache_lifetime'];
+
+        $h = $isHostCheck ? 'true': 'false';
+
+        // base64 since there can be whatever in the names
+        $cacheKey = base64_encode($host . $service . $checkcommand . $duration . $h);
+
+        // Check the cache for existing data
+        if ($cacheKey !== null && $cacheDurationInSeconds > 0) {
+            if ($cache->has($cacheKey, time() - $cacheDurationInSeconds)) {
+                Logger::debug('Found data in cache for ' . $cacheKey);
+                $data = unserialize($cache->get($cacheKey));
+                return $data;
+            }
+        }
+
+        Logger::debug('Found no data in cache for ' . $cacheKey);
+
         $response = new PerfdataResponse();
 
         if (Module::exists('icingadb') && IcingadbSupport::useIcingaDbAsBackend()) {
@@ -106,6 +130,9 @@ trait PerfdataSource
         if ($customvars[$cvh::CUSTOM_VAR_CONFIG_HIGHLIGHT] ?? false) {
             $response->setDatasetToHighlight($customvars[$cvh::CUSTOM_VAR_CONFIG_HIGHLIGHT] ?? '');
         }
+
+        Logger::debug('Storing data in cache for ' . $cacheKey);
+        $cache->store($cacheKey, serialize($response));
 
         return $response;
     }
