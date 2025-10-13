@@ -264,7 +264,10 @@
                 data.forEach((dataset) => {
                     dataset.timestamps = this.ensureArray(dataset.timestamps);
                     // Base format function for the y-axis
-                    let formatFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
+                    let formatYFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
+                    // Override the default uplot callback so that smaller values are
+                    // shown in the hover and not rounded.
+                    let formatLegendFunction = (u, rawValue) => rawValue == null ? '' : rawValue;
 
                     // We change the format function based on the unit of the dataset
                     // This can be extend in the future:
@@ -273,17 +276,20 @@
                     // - Update the documentation to include the new format option
                     switch (dataset.unit) {
                     case 'bytes':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
+                        formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
+                        formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + rawValue + ')';
                         break;
                     case 'seconds':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
+                        formatYFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
+                        formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatTimeSeconds(rawValue) + ' (' + rawValue + ')';
                         break;
                     case 'percentage':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatPercentage(v));
+                        formatYFunction = (u, vals, space) => vals.map(v => this.formatPercentage(v));
+                        formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatPercentage(rawValue) + ' (' + rawValue + ')';
                         break;
                     }
 
-                    opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, formatFunction)];
+                    opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, formatYFunction)];
 
                     // Add a new empty plot with a title for the dataset
                     opts.title = dataset.title;
@@ -322,9 +328,7 @@
                             stroke: stroke,
                             fill: fill,
                             show: show,
-                            // Override the default uplot callback so that smaller values are
-                            // shown in the hover.
-                            value: (self, rawValue) => rawValue,
+                            value: formatLegendFunction,
                         }, idx+1);
                         // Add this to the final data for the chart
                         d.push(set);
