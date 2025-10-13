@@ -7,6 +7,8 @@
     // Names to identify the warning/critical series
     const CHART_WARN_SERIESNAME = 'warning';
     const CHART_CRIT_SERIESNAME = 'critical';
+    // Options for formatting datetime
+    const CHART_LEGEND_FORMAT = new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'medium'}).format;
 
     class Perfdatagraphs extends Icinga.EventListener {
         // data contains the fetched chart data with the element ID where it is rendered as key.
@@ -111,6 +113,7 @@
             return {
                 stroke: axesColor,
                 grid: { stroke: axesColor, width: 0.5 },
+                // TODO: We should also format datetime here. But thats a bit more work
                 ticks: { stroke: axesColor, width: 0.5 }
             };
         }
@@ -175,7 +178,11 @@
                 },
                 // series holds the config of each dataset, such as visibility, styling,
                 // labels & value display in the legend
-                series: [ {} ],
+                series: [
+                    {
+                        value: (u, ts) => ts == null ? '' : CHART_LEGEND_FORMAT(uPlot.tzDate(new Date(ts * 1e3), 'Etc/UTC'))
+                    }
+                ],
                 hooks: {
                     init: [
                         u => {
