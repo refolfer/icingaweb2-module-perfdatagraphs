@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.0 (unreleased)
+
+- Rework data-fetching to use PHP
+- Add human-readable units in legend
+- Use locale to adjust time format in legend
+
 ## v0.1.2
 
 - Fix custom variables could not be loaded in IDO
