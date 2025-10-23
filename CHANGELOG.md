@@ -5,6 +5,7 @@
 - Rework data-fetching to use PHP
 - Add human-readable units in legend
 - Use locale to adjust time format in legend
+- Fix inconsistent collapsible behavior during autorefresh
 
 ## v0.1.2
 
