@@ -24,6 +24,8 @@ class QuickActions extends BaseHtmlElement
     // The URL parameter we append to the URL to specify the duration the backend should fetch
     protected $rangeURLParam = 'perfdatagraphs.duration';
 
+    protected $baseURL;
+
     /**
      * @param string $defaultCurrentRange Value for the "Current" time range button
      * @param string $baseURL URL to use as base for the links. We get this from the request
