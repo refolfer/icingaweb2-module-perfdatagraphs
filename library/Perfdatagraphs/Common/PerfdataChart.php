@@ -20,8 +20,6 @@ use ipl\Web\Widget\Icon;
 trait PerfdataChart
 {
     use Translation;
-    use PerfdataSource;
-
 
     /**
      * @param string $hostName Name of the host
@@ -78,6 +76,7 @@ trait PerfdataChart
         // Where we store all elements for the charts.
         $charts = HtmlElement::create('div', [
             'class' => 'perfdata-charts-container collapsible',
+            'id' => $elemID,
             // Note: We could have a configuration option to change the
             // "always collapsed" behaviour
             'data-visible-height' => 0,
@@ -91,14 +90,12 @@ trait PerfdataChart
             'id' => $elemID . '-control',
         ]);
 
-        $b = new HtmlElement(
+        $toggleButton = new HtmlElement(
             'button',
             null,
             new Icon('angle-double-up', ['class' => 'collapse-icon']),
             new Icon('angle-double-down', ['class' => 'expand-icon'])
         );
-
-        $chartsControl->add($b);
 
         // Add a headline and all other elements to our element.
         $header = Html::tag('h2', $this->translate('Performance Data Graph'));
@@ -115,53 +112,82 @@ trait PerfdataChart
             $duration = Url::fromRequest()->getParam('perfdatagraphs.duration');
         }
 
-        // Fetch the perfdata for a given object via the hook.
-        $perfdata = $this->fetchDataViaHook($hostName, $serviceName, $checkCommandName, $duration, $isHostCheck);
+        $source = new PerfdataSource($config);
 
-        // Error handling, if this gets too long, we could move this to a method.
-        if ($perfdata->isEmpty()) {
-            $msg = $this->translate('No data received');
-            $main->add(HtmlElement::create(
-                'p',
-                ['class' => 'line-chart-error preformatted'],
-                $msg,
-            ));
-            return $main;
+        $cacheDurationInSeconds = $config['cache_lifetime'];
+        $h = $isHostCheck ? 'true': 'false';
+        // base64 since there can be whatever in the names
+        $cacheKey = base64_encode($hostName . $serviceName . $checkCommandName . $duration . $h);
+
+        // Get data from cache if it is available
+        $datasets = $source->getDataFromCache($cacheKey, $cacheDurationInSeconds);
+
+        // If not, fetch the perfdata for a given object via the hook.
+        if (!$datasets) {
+            $perfdata = $source->fetchDataViaHook($hostName, $serviceName, $checkCommandName, $duration, $isHostCheck);
+
+            // Error handling, if this gets too long, we could move this to a method.
+            if ($perfdata->isEmpty()) {
+                $msg = $this->translate('No data received');
+                $main->add(HtmlElement::create(
+                    'p',
+                    ['class' => 'line-chart-error preformatted'],
+                    $msg,
+                ));
+                return $main;
+            }
+
+            if ($perfdata->hasErrors()) {
+                $msg = $this->translate('Error while fetching performance data: %s');
+                $main->add(HtmlElement::create(
+                    'p',
+                    ['class' => 'line-chart-error preformatted'],
+                    sprintf($msg, join(' ', $perfdata->errors)),
+                ));
+                return $main;
+            }
+
+            if (!$perfdata->isValid()) {
+                $msg = $this->translate('Invalid data received: %s');
+                $main->add(HtmlElement::create(
+                    'p',
+                    ['class' => 'line-chart-error preformatted'],
+                    sprintf($msg, join(' ', $perfdata->errors)),
+                ));
+                return $main;
+            }
+
+            foreach ($perfdata->getDatasets() as $dataset) {
+                $datasets[$dataset->getTitle()] = Json::sanitize($dataset);
+            }
+
+            // After transforming the data store it. We're just storing the acutal datasets
+            // since the rest is just relevant for the request.
+            $source->storeDataToCache($cacheKey, $datasets);
         }
-
-
-        if ($perfdata->hasErrors()) {
-            $msg = $this->translate('Error while fetching performance data: %s');
-            $main->add(HtmlElement::create(
-                'p',
-                ['class' => 'line-chart-error preformatted'],
-                sprintf($msg, join(' ', $perfdata->errors)),
-            ));
-            return $main;
-        }
-
-        if (!$perfdata->isValid()) {
-            $msg = $this->translate('Invalid data received: %s');
-            $main->add(HtmlElement::create(
-                'p',
-                ['class' => 'line-chart-error preformatted'],
-                sprintf($msg, join(' ', $perfdata->errors)),
-            ));
-            return $main;
-        }
-
-        // Element in which the charts will get rendered.
-        // We use attributes on this elements to transport data
-        // to the JavaScript part of this module.
-        $chart = HtmlElement::create('div', [
-            'id' => $elemID,
-            'class' => 'line-chart',
-            'data-perfdata' => Json::sanitize($perfdata),
-        ]);
 
         $charts->add((new QuickActions(Url::fromRequest(), $config['default_timerange'])));
-        $charts->add($chart);
+
+        // Elements in which the charts will get rendered.
+        // We use attributes on this elements to transport data
+        // to the JavaScript part of this module.
+        foreach ($datasets as $title => $data) {
+            $chart = HtmlElement::create('div', [
+                'class' => 'line-chart',
+                'id' => $elemID . '_' . $title,
+                'data-perfdata' => $data,
+            ]);
+
+            $charts->add($chart);
+        }
+
         $main->add($charts);
+
+        // We only need the toggle button when there are more charts
+        if (count($datasets) > 1) {
+            $chartsControl->add($toggleButton);
+        }
+
         $main->add($chartsControl);
 
         return $main;
