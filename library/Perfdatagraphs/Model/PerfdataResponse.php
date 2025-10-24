@@ -26,6 +26,15 @@ class PerfdataResponse implements JsonSerializable
     }
 
     /**
+     * setErrors override the errors array.
+     * @param array $errors errors to set
+     */
+    public function setErrors(array $errors): array
+    {
+        return $this->errors = $errors;
+    }
+
+    /**
      * addError adds an error message to this object.
      * @param string $e error message to append
      */
@@ -78,6 +87,16 @@ class PerfdataResponse implements JsonSerializable
     }
 
     /**
+     * setDatasets overrides the datasets.
+     *
+     * @param array $data the dataset to set
+     */
+    public function setDatasets(array $data): array
+    {
+        return $this->data = $data;
+    }
+
+    /**
      * getDataset returns a dataset by its name.
      *
      * @param string $title the dataset to return
@@ -99,6 +118,9 @@ class PerfdataResponse implements JsonSerializable
         $this->data[$ds->getTitle()] = $ds;
     }
 
+    /**
+     * jsonSerialize implements JsonSerializable
+     */
     public function jsonSerialize(): mixed
     {
         $d = [];
