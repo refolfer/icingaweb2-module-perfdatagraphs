@@ -6,6 +6,7 @@ use Icinga\Exception\NotFoundError;
 
 use Icinga\Module\Icingadb\Common\Auth;
 use Icinga\Module\Icingadb\Common\Database;
+use Icinga\Module\Icingadb\Common\Macros;
 use Icinga\Module\Icingadb\Model\Host;
 use Icinga\Module\Icingadb\Model\Service;
 
@@ -20,6 +21,7 @@ class CustomVarsHelper
 {
     use Database;
     use Auth;
+    use Macros;
 
     // Name of all the custom variables we use.
     public const CUSTOM_VAR_CONFIG_PREFIX  = 'perfdatagraphs_config';
