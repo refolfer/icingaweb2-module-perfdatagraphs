@@ -9,12 +9,11 @@ use Icinga\Module\Monitoring\Object\MonitoredObject;
 use Icinga\Module\Monitoring\Object\Service;
 
 use Icinga\Exception\NotFoundError;
-use Tests\Icinga\Modules\Monitoring\Application\Views\Helpers\MacroTest;
 
 /**
- * CustomVarsHelper is a helper class to work with custom variables of Icinga objects.
+ * IcingaObjectHelper is a helper class to work with Icinga objects.
  */
-class CustomVarsHelper
+class IcingaObjectHelper
 {
     // Name of all the custom variables we use.
     public const CUSTOM_VAR_CONFIG_PREFIX  = 'perfdatagraphs_config';
@@ -120,7 +119,7 @@ class CustomVarsHelper
     /**
      * Transform stdClass into array recursively
      */
-    public function objectToArray($data)
+    protected function objectToArray($data)
     {
         if (is_object($data)) {
             $data = get_object_vars($data);
