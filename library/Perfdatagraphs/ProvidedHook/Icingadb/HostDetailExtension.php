@@ -3,7 +3,7 @@
 namespace Icinga\Module\Perfdatagraphs\ProvidedHook\Icingadb;
 
 use Icinga\Module\Perfdatagraphs\Common\PerfdataChart;
-use Icinga\Module\Perfdatagraphs\Icingadb\CustomVarsHelper;
+use Icinga\Module\Perfdatagraphs\Icingadb\IcingaObjectHelper;
 
 use Icinga\Module\Icingadb\Hook\HostDetailExtensionHook;
 use Icinga\Module\Icingadb\Model\Host;
@@ -27,7 +27,7 @@ class HostDetailExtension extends HostDetailExtensionHook
         $hostName = $host->name ?? '';
         $checkCommandName = $host->checkcommand_name ?? '';
 
-        $cvh = new CustomVarsHelper();
+        $cvh = new IcingaObjectHelper();
         $customvars = $cvh->getPerfdataGraphsConfigForObject($host);
 
         // Check if charts are disabled for this object, if so we just return.

@@ -7,8 +7,8 @@ use Icinga\Module\Perfdatagraphs\Model\PerfdataResponse;
 use Icinga\Module\Perfdatagraphs\Common\ModuleConfig;
 use Icinga\Module\Perfdatagraphs\ProvidedHook\Icingadb\IcingadbSupport;
 
-use Icinga\Module\Perfdatagraphs\Icingadb\CustomVarsHelper as IcinaDBCVH;
-use Icinga\Module\Perfdatagraphs\Ido\CustomVarsHelper as IdoCVH;
+use Icinga\Module\Perfdatagraphs\Icingadb\IcingaObjectHelper as IcinaDBCVH;
+use Icinga\Module\Perfdatagraphs\Ido\IcingaObjectHelper as IdoCVH;
 
 use Icinga\Application\Modules\Module;
 use Icinga\Application\Logger;

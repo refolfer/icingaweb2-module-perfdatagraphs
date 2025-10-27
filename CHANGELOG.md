@@ -4,7 +4,7 @@
 
 - Rework data-fetching to use PHP
 - Add human-readable units in legend
-- Extend CustomVarHelper to be able to resolve Macros
+- Extend IcingaObjectHelper to be able to resolve Macros
 - Use locale to adjust time format in legend
 - Fix inconsistent collapsible behavior during autorefresh
 - Add the option to configure custom timeranges
