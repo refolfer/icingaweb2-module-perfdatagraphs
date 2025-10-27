@@ -19,17 +19,58 @@ class PerfdataSeries implements JsonSerializable
      * @param string $name
      * @param iterable $values
      */
-    public function __construct(string $name, iterable $values)
+    public function __construct(string $name, iterable $values = [])
     {
         $this->name = $name;
         $this->values = $values;
     }
 
+    /**
+     * getName returns the name for the series
+     */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /**
+     * setName sets the name for the series
+     * @param string $name
+     */
+    public function setName($name): string
+    {
+        return $this->name = $name;
+    }
+
+    /**
+     * getValues returns the values for the series
+     */
+    public function getValues(): string
+    {
+        return $this->values;
+    }
+
+    /**
+     * addValue adds a value to the series
+     * @param mixed $value
+     */
+    public function addValue(mixed $value): void
+    {
+        $this->values[] = $value;
+    }
+
+    /**
+     * setValues sets the values for the series
+     * @param string $values
+     */
+    public function setValues($values): string
+    {
+        return $this->values = $values;
+    }
+
+    /**
+     * jsonSerialize implements JsonSerializable
+     */
     public function jsonSerialize(): mixed
     {
         $d = [];

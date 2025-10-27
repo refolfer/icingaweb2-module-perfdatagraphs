@@ -7,8 +7,8 @@ use Icinga\Module\Perfdatagraphs\Model\PerfdataResponse;
 use Icinga\Module\Perfdatagraphs\Common\ModuleConfig;
 use Icinga\Module\Perfdatagraphs\ProvidedHook\Icingadb\IcingadbSupport;
 
-use Icinga\Module\Perfdatagraphs\Icingadb\CustomVarsHelper as IcinaDBCVH;
-use Icinga\Module\Perfdatagraphs\Ido\CustomVarsHelper as IdoCVH;
+use Icinga\Module\Perfdatagraphs\Icingadb\IcingaObjectHelper as IcinaDBCVH;
+use Icinga\Module\Perfdatagraphs\Ido\IcingaObjectHelper as IdoCVH;
 
 use Icinga\Application\Modules\Module;
 use Icinga\Application\Logger;
@@ -17,12 +17,62 @@ use Exception;
 
 /**
  * PerfdataSource contains everything related to fetching and transforming data.
+ * The idea is that you use this behind the scenes to get the data.
  */
-trait PerfdataSource
+class PerfdataSource
 {
+    // This Module's configuration
+    protected $config;
+
+    // This Module's FileCache
+    protected $cache;
+
+    /**
+     * @param $config the module's configuration
+     */
+    public function __construct($config)
+    {
+        $this->config = $config;
+
+        $this->cache = PerfdataCache::instance('perfdatagraphs');
+    }
+
+    /**
+     * getDataFromCache returns the wanted data from the module's FileCache if present.
+     *
+     * @param string $cacheKey The key for this cache
+     * @param int $duration How long the cached data is valid
+     */
+    public function getDataFromCache(string $cacheKey, int $duration): array|false
+    {
+        // Check the cache for existing data
+        if ($cacheKey !== null && $duration > 0) {
+            if ($this->cache->has($cacheKey, time() - $duration)) {
+                Logger::debug('Found data in cache for ' . $cacheKey);
+                return unserialize($this->cache->get($cacheKey));
+            }
+        }
+
+        Logger::debug('Found no data in cache for ' . $cacheKey);
+
+        return false;
+    }
+
+    /**
+     * storeDataToCache stores the given data to the module's FileCache
+     *
+     * @param string $cacheKey The key for this cache
+     * @param array $datasets The list of data to store. We mainly use this to store the JSON encoded datasets,
+     * so that we don't have to encode them again. There might still be a bit of overhead with the serialize().
+     */
+    public function storeDataToCache(string $cacheKey, array $datasets): void
+    {
+        Logger::debug('Storing data in cache for ' . $cacheKey);
+        $this->cache->store($cacheKey, serialize($datasets));
+    }
+
     /**
      * fetchDataViaHook calls the configured PerfdataSourceHook to fetch the perfdata from the backend.
-     * We use a method here, to simplify testing.
      *
      * @param string $host Name of the host
      * @param string $service Name of the service

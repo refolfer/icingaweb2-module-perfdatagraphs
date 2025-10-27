@@ -4,15 +4,16 @@ namespace Icinga\Module\Perfdatagraphs\Ido;
 
 use Icinga\Module\Monitoring\Backend\MonitoringBackend;
 use Icinga\Module\Monitoring\Object\Host;
+use Icinga\Module\Monitoring\Object\Macro;
 use Icinga\Module\Monitoring\Object\MonitoredObject;
 use Icinga\Module\Monitoring\Object\Service;
 
 use Icinga\Exception\NotFoundError;
 
 /**
- * CustomVarsHelper is a helper class to work with custom variables of Icinga objects.
+ * IcingaObjectHelper is a helper class to work with Icinga objects.
  */
-class CustomVarsHelper
+class IcingaObjectHelper
 {
     // Name of all the custom variables we use.
     public const CUSTOM_VAR_CONFIG_PREFIX  = 'perfdatagraphs_config';
@@ -118,7 +119,7 @@ class CustomVarsHelper
     /**
      * Transform stdClass into array recursively
      */
-    public function objectToArray($data)
+    protected function objectToArray($data)
     {
         if (is_object($data)) {
             $data = get_object_vars($data);
@@ -129,5 +130,15 @@ class CustomVarsHelper
         }
 
         return $data;
+    }
+
+    /**
+     * expandMacros returns the given string with macros being resolved.
+     * This can be used in backend modules when object information are required,
+     * e.g. Graphite templates.
+     */
+    public function expandMacros(string $input, $object): string
+    {
+        return Macro::resolveMacros($input, $object);
     }
 }

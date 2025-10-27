@@ -4,15 +4,11 @@
 
     // The element in which we will add the charts
     const CHART_CLASS = '.line-chart';
-    // The element in which we will show errors
-    const CHART_ERROR_CLASS = 'p.line-chart-error';
     // Names to identify the warning/critical series
     const CHART_WARN_SERIESNAME = 'warning';
     const CHART_CRIT_SERIESNAME = 'critical';
-    // Endpoint to fetch the data from
-    const FETCH_ENDPOINT = '/perfdatagraphs/fetch';
-    // Timeout for the data fetch
-    const FETCH_TIMEOUT = 15000;  // TODO: Can we make this configurable somehow?
+    // Options for formatting datetime
+    const CHART_LEGEND_FORMAT = new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'medium'}).format;
 
     class Perfdatagraphs extends Icinga.EventListener {
         // data contains the fetched chart data with the element ID where it is rendered as key.
@@ -25,9 +21,6 @@
         currentSelect = null;
         currentCursor = null;
         currentSeriesShow = {};
-        // Where we store the variable selected and the constant timerange
-        duration = '';
-        defaultDuration = '';
 
         constructor(icinga)
         {
@@ -47,7 +40,6 @@
 
             // TODO: The 'rendered' selectors might not yet be optimal.
             this.on('rendered', '#main > .icinga-module, #main > .container', this.rendered, this);
-            this.on('click', '.perfdata-charts a.action-link[data-duration]', this.onTimeClick, this);
         }
 
         /**
@@ -57,17 +49,6 @@
         {
             let _this = event.data.self;
 
-            // This elements contains the configured default timerange from the
-            // module's configuration.
-            const elem = document.getElementById('perfdatagraphs-default-timerange');
-            if (!elem) {
-                return;
-            }
-
-            const defaultduration = elem.getAttribute('data-duration');
-            this.duration = defaultduration;
-            this.defaultDuration = defaultduration;
-
             if (!isAutorefresh) {
                 // Reset the selection and set the duration when it's
                 // an autorefresh and new data is being loaded.
@@ -76,66 +57,12 @@
                 // 1: value, 2: warning, 3: critical
                 _this.currentSeriesShow = {};
                 _this.currentCursor = null;
-                _this.duration = this.defaultDuration;
             }
 
             // Now we fetch
             _this.fetchData();
             // ...and render in case we already have data
             _this.renderCharts();
-        }
-
-        /**
-         * onTimeClick retrieves the requested duration and calls the rendered.
-         */
-        onTimeClick(event)
-        {
-            let _this = event.data.self;
-            let target = event.currentTarget;
-
-            const duration = target.getAttribute('data-duration');
-
-            // Reset the selection and set the duration.
-            // These need to be stored in between the autorefresh
-            _this.currentSelect = {min: 0, max: 0};
-            _this.duration = duration;
-
-            // Now we fetch and render
-            _this.fetchData();
-            _this.renderCharts();
-        }
-
-        /**
-         * isValidData validates the received data and shows errors if there are any
-         * contained in the data.
-         */
-        isValidData(data)
-        {
-            // There is absolutely nothing in the array we can use
-            if (data === undefined || data.length === 0) {
-                const errorMsg = $(CHART_ERROR_CLASS).attr('data-message-nodata');
-                $(CHART_ERROR_CLASS).text(errorMsg).show();
-                this.icinga.logger.warn('perfdatagraphs: no data received');
-                return false;
-            }
-
-            // There are errors in the error section of the response
-            if (data.errors !== undefined && data.errors.length > 0) {
-                const errorMsg = $(CHART_ERROR_CLASS).attr('data-message-error');
-                $(CHART_ERROR_CLASS).text(errorMsg +': '+ data.errors.join('; ')).show();
-                this.icinga.logger.error('perfdatagraphs', data.errors.join('; '));
-                return false;
-            }
-
-            // There is nothing in the data section of the response
-            if (data.data === undefined || data.data.length === 0) {
-                const errorMsg = $(CHART_ERROR_CLASS).attr('data-message-nodata');
-                $(CHART_ERROR_CLASS).text(errorMsg).show();
-                this.icinga.logger.warn('perfdatagraphs: no data received');
-                return false;
-            }
-
-            return true;
         }
 
         /**
@@ -155,56 +82,10 @@
             _this.icinga.logger.debug('perfdatagraphs', 'start fetchData', lineCharts);
 
             for (let elem of lineCharts) {
-                // Get the parameters the Hooks added to the element
-                const parameters = {
-                    host: elem.getAttribute('data-host'),
-                    service: elem.getAttribute('data-service'),
-                    checkcommand: elem.getAttribute('data-checkcommand'),
-                    ishostcheck: elem.getAttribute('data-ishostcheck'),
-                    duration: _this.duration,
-                }
+                const perfdata =  JSON.parse(elem.getAttribute('data-perfdata'));
 
-                // Make a request to the internal controller to get the data for the charts
-                let req = $.ajax({
-                    type: 'GET',
-                    dataType: 'json',
-                    timeout: FETCH_TIMEOUT,
-                    cache: true,
-                    async: true,
-                    url: this.icinga.config.baseUrl + FETCH_ENDPOINT,
-                    data: parameters,
-                    error: function (request, status, error) {
-                        // Just in case the fetch controller explodes on us.
-                        // There might be a better way.
-                        $('i.spinner').hide();
-                        // See module.less for why we set the min-height
-                        $('.perfdata-charts-container').css('min-height', '0px');
-                        const el = $(request.responseText);
-                        const errorMsg = $('p.error-message', el).text();
-                        _this.icinga.logger.error('perfdatagraphs:', errorMsg);
-                        $(CHART_ERROR_CLASS).text($(CHART_ERROR_CLASS).attr('data-message-error') + ': ' + errorMsg).show();
-                    },
-                    beforeSend: function() {
-                        // We show the spinner when we fetch data
-                        $('i.spinner').show();
-                    },
-                    success: function(data) {
-                        // On success try rendering the chart
-                        $('i.spinner').hide();
-                        _this.icinga.logger.debug('perfdatagraphs', 'finish fetchData', data);
-
-                        if (! _this.isValidData(data)) {
-                            // See module.less for why we set the min-height
-                            $('.perfdata-charts-container').css('min-height', '0px');
-                            return;
-                        }
-
-                        $(CHART_ERROR_CLASS).hide()
-                        _this.data.set(elem.getAttribute('id'), data.data);
-                        // Trigger a render after we fetched data
-                        _this.renderCharts();
-                    }
-                });
+                _this.data.set(elem.getAttribute('id'), perfdata);
+                _this.renderCharts();
             }
         }
 
@@ -232,6 +113,7 @@
             return {
                 stroke: axesColor,
                 grid: { stroke: axesColor, width: 0.5 },
+                // TODO: We should also format datetime here. But thats a bit more work
                 ticks: { stroke: axesColor, width: 0.5 }
             };
         }
@@ -296,7 +178,11 @@
                 },
                 // series holds the config of each dataset, such as visibility, styling,
                 // labels & value display in the legend
-                series: [ {} ],
+                series: [
+                    {
+                        value: (u, ts) => ts == null ? '' : CHART_LEGEND_FORMAT(uPlot.tzDate(new Date(ts * 1e3), 'Etc/UTC'))
+                    }
+                ],
                 hooks: {
                     init: [
                         u => {
@@ -356,19 +242,13 @@
 
             this.icinga.logger.debug('perfdatagraphs', 'start renderCharts', this.data);
 
-            this.data.forEach((data, elemID, map) => {
+            this.data.forEach((dataset, elemID, map) => {
                 // Get the element in which we render the chart
                 const elem = document.getElementById(elemID);
 
                 if (elem === null) {
                     return;
                 }
-
-                // Small hack. Since we always collapse
-                // we got to remove the button when there's just one chart
-                if (data.length === 1) {
-                    document.getElementById(elemID + '-control').style.display = 'none';
-                };
 
                 // The size can vary from chart to chart for example when
                 // there are two contains on the page.
@@ -382,94 +262,97 @@
                 elem.replaceChildren();
 
                 // Create a new uplot chart for each performance dataset
-                data.forEach((dataset) => {
-                    dataset.timestamps = this.ensureArray(dataset.timestamps);
-                    // Base format function for the y-axis
-                    let formatFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
+                dataset.timestamps = this.ensureArray(dataset.timestamps);
+                // Base format function for the y-axis
+                let formatYFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
+                // Override the default uplot callback so that smaller values are
+                // shown in the hover and not rounded.
+                let formatLegendFunction = (u, rawValue) => rawValue == null ? '' : rawValue;
 
-                    // We change the format function based on the unit of the dataset
-                    // This can be extend in the future:
-                    // - Create a new format function that returns a formated string for the given value
-                    // - Add a new case with the function here
-                    // - Update the documentation to include the new format option
-                    switch (dataset.unit) {
-                    case 'bytes':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
-                        break;
-                    case 'seconds':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
-                        break;
-                    case 'percentage':
-                        formatFunction = (u, vals, space) => vals.map(v => this.formatPercentage(v));
-                        break;
+                // We change the format function based on the unit of the dataset
+                // This can be extend in the future:
+                // - Create a new format function that returns a formated string for the given value
+                // - Add a new case with the function here
+                // - Update the documentation to include the new format option
+                switch (dataset.unit) {
+                case 'bytes':
+                    formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + rawValue + ')';
+                    break;
+                case 'seconds':
+                    formatYFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatTimeSeconds(rawValue) + ' (' + rawValue + ')';
+                    break;
+                case 'percentage':
+                    formatYFunction = (u, vals, space) => vals.map(v => this.formatPercentage(v));
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatPercentage(rawValue) + ' (' + rawValue + ')';
+                    break;
+                }
+
+                opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, formatYFunction)];
+
+                // Add a new empty plot with a title for the dataset
+                opts.title = dataset.title;
+                opts.title += dataset.unit ? ' | ' + dataset.unit : '';
+
+                let u = new uPlot(opts, [], elem);
+                // Where we store the finished data for the chart
+                let d = [dataset.timestamps];
+
+                // Create the data for the plot and add the series
+                // Using a 'classic' for loop since we need the index
+                for (let idx = 0; idx < dataset.series.length; idx++) {
+                    // // The series we are going to add (e.g. values, warn, crit, etc.)
+                    let set = dataset.series[idx].values;
+                    set = this.ensureArray(set);
+
+                    // See if there are series options from the last autorefresh
+                    // if so we use them, otherwise the default.
+                    let show = this.currentSeriesShow[idx+1] ?? true;
+                    // Get the style either from the dataset or from CSS
+                    let stroke = dataset.stroke ?? valueColor;
+                    let fill = dataset.fill ?? this.ensureRgba(valueColor, 0.3);
+
+                    // Add a new series to the plot. Need adjust the index, since 0 is the timestamps
+                    if (dataset.series[idx].name === CHART_WARN_SERIESNAME) {
+                        stroke = warningColor;
+                        fill = false;
+                    }
+                    if (dataset.series[idx].name === CHART_CRIT_SERIESNAME) {
+                        stroke = criticalColor;
+                        fill = false;
                     }
 
-                    opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, formatFunction)];
+                    u.addSeries({
+                        label: dataset.series[idx].name,
+                        stroke: stroke,
+                        fill: fill,
+                        show: show,
+                        value: formatLegendFunction,
+                    }, idx+1);
+                    // Add this to the final data for the chart
+                    d.push(set);
+                }
+                // Add the data to the chart
+                u.setData(d);
 
-                    // Add a new empty plot with a title for the dataset
-                    opts.title = dataset.title;
-                    opts.title += dataset.unit ? ' | ' + dataset.unit : '';
+                // If a selection is stored we restore it.
+                if (this.currentSelect !== null) {
+                    u.setScale('x', this.currentSelect);
+                }
+                // If a cursor is stored we restore it.
+                if (this.currentCursor !== null) {
+                    u.setCursor(this.currentCursor);
+                }
 
-                    let u = new uPlot(opts, [], elem);
-                    // Where we store the finished data for the chart
-                    let d = [dataset.timestamps];
+                // Add the chart to the map which we use for the resize observer
+                const _plots = this.plots.get(elem) || [];
 
-                    // Create the data for the plot and add the series
-                    // Using a 'classic' for loop since we need the index
-                    for (let idx = 0; idx < dataset.series.length; idx++) {
-                        // // The series we are going to add (e.g. values, warn, crit, etc.)
-                        let set = dataset.series[idx].values;
-                        set = this.ensureArray(set);
+                _plots.push(u)
 
-                        // See if there are series options from the last autorefresh
-                        // if so we use them, otherwise the default.
-                        let show = this.currentSeriesShow[idx+1] ?? true;
-                        // Get the style either from the dataset or from CSS
-                        let stroke = dataset.stroke ?? valueColor;
-                        let fill = dataset.fill ?? this.ensureRgba(valueColor, 0.3);
-
-                        // Add a new series to the plot. Need adjust the index, since 0 is the timestamps
-                        if (dataset.series[idx].name === CHART_WARN_SERIESNAME) {
-                            stroke = warningColor;
-                            fill = false;
-                        }
-                        if (dataset.series[idx].name === CHART_CRIT_SERIESNAME) {
-                            stroke = criticalColor;
-                            fill = false;
-                        }
-
-                        u.addSeries({
-                            label: dataset.series[idx].name,
-                            stroke: stroke,
-                            fill: fill,
-                            show: show,
-                            // Override the default uplot callback so that smaller values are
-                            // shown in the hover.
-                            value: (self, rawValue) => rawValue,
-                        }, idx+1);
-                        // Add this to the final data for the chart
-                        d.push(set);
-                    }
-                    // Add the data to the chart
-                    u.setData(d);
-
-                    // If a selection is stored we restore it.
-                    if (this.currentSelect !== null) {
-                        u.setScale('x', this.currentSelect);
-                    }
-                    // If a cursor is stored we restore it.
-                    if (this.currentCursor !== null) {
-                        u.setCursor(this.currentCursor);
-                    }
-
-                    // Add the chart to the map which we use for the resize observer
-                    const _plots = this.plots.get(elem) || [];
-
-                    _plots.push(u)
-
-                    this.plots.set(elem, _plots);
-                });
+                this.plots.set(elem, _plots);
             });
+
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts', this.plots);
         }
 

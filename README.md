@@ -36,13 +36,6 @@ Configuration options are limited by design.
 
 Documentation for this module is available at [doc](doc/).
 
-# Known Issues
-
-### Inconsistent collapsible behavior during autorefresh
-
-When there are mulitple graphs on the page
-the autorefresh can sometimes cause inconsistent collapsible behavior.
-
 # Road to Version 1.0.0
 
 What our current idea for a version 1.0.0 of this module is:

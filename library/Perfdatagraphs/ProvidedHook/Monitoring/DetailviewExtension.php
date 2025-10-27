@@ -3,7 +3,7 @@
 namespace Icinga\Module\Perfdatagraphs\ProvidedHook\Monitoring;
 
 use Icinga\Module\Perfdatagraphs\Common\PerfdataChart;
-use Icinga\Module\Perfdatagraphs\Ido\CustomVarsHelper;
+use Icinga\Module\Perfdatagraphs\Ido\IcingaObjectHelper;
 
 use Icinga\Module\Monitoring\Object\Host;
 use Icinga\Module\Monitoring\Object\MonitoredObject;
@@ -34,7 +34,7 @@ class DetailviewExtension extends DetailviewExtensionHook
             return HtmlString::create('');
         }
 
-        $cvh = new CustomVarsHelper();
+        $cvh = new IcingaObjectHelper();
         $customvars = $cvh->getPerfdataGraphsConfigForObject($object);
 
         // Check if charts are disabled for this object, if so we just return.
