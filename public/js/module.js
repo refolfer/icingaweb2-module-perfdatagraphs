@@ -3,7 +3,7 @@
     'use strict';
 
     // The element in which we will add the charts
-    const CHART_CLASS = '.line-chart';
+    const CHART_CLASS = '.perfdatagraphs-line-chart';
     // Names to identify the warning/critical series
     const CHART_WARN_SERIESNAME = 'warning';
     const CHART_CRIT_SERIESNAME = 'critical';

@@ -173,7 +173,8 @@ trait PerfdataChart
         // to the JavaScript part of this module.
         foreach ($datasets as $title => $data) {
             $chart = HtmlElement::create('div', [
-                'class' => 'line-chart',
+                // We use a perfdatagraphs prefix here to avoid overlap with other modules (i.e. Icinga Kubernetes)
+                'class' => 'perfdatagraphs-line-chart',
                 'id' => $elemID . '_' . $title,
                 'data-perfdata' => $data,
             ]);
