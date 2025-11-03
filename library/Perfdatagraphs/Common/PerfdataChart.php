@@ -14,6 +14,10 @@ use ipl\I18n\Translation;
 use ipl\Web\Url;
 use ipl\Web\Widget\Icon;
 
+use DateTime;
+use DateInterval;
+use DateMalformedIntervalStringException;
+
 /**
  * PerfdataChart contains common functionality used for rendering the performance data charts.
  * The idea is that you use this in the hook to create the chart elements.
@@ -33,6 +37,23 @@ trait PerfdataChart
     {
         // Since there might be whatever in the names.
         return rtrim(base64_encode(sprintf('%s-%s-%s', $hostName, $serviceName, $checkCommandName)), '=');
+    }
+
+    /**
+     * @param string $duration An interval specification.
+     * @return int the duration in seconds
+     */
+    private static function parseDuration(string $duration): int
+    {
+        $now = new DateTime();
+        try {
+            $int = new DateInterval($duration);
+        } catch (DateMalformedIntervalStringException $e) {
+            $int = new DateInterval('PT12H');
+        }
+
+        $now->sub($int);
+        return $now->getTimestamp();
     }
 
     /**
@@ -171,6 +192,7 @@ trait PerfdataChart
                 // We use a perfdatagraphs prefix here to avoid overlap with other modules (i.e. Icinga Kubernetes)
                 'class' => 'perfdatagraphs-line-chart',
                 'id' => $elemID . '_' . $title,
+                'data-duration' => $this->parseDuration($duration),
                 'data-perfdata' => $data,
             ]);
 

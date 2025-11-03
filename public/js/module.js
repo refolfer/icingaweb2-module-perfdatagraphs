@@ -17,6 +17,8 @@
         currentCursor = null;
         currentSeriesShow = {};
 
+        initialRange = [0, 0];
+
         constructor(icinga)
         {
             super(icinga);
@@ -152,8 +154,22 @@
                 cursor: { sync: { key: 0, setSeries: true } },
                 tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), timezone),
                 scales: {
-                    x: { time: true },
-                    y: { range: {
+                    x: {
+                        time: true,
+                        range: (u, min, max) => {
+                            // if (this.initialRange === null) {
+                            //     console.log(min, max);
+                                return [min, max];
+                            // }
+
+                            // const r = this.initialRange.slice();
+                            // this.initialRange = null;
+                            // console.log(r);
+                            // return r;
+                        }
+                       },
+                    y: {
+                        range: {
                             min: {
                                 soft: 0,
                                 mode: 1,
