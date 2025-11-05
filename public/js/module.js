@@ -237,6 +237,13 @@
             // These are the shared options for all charts
             const baseOpts = this.getChartBaseOptions();
 
+            // Remove leftover eventhandlers and uPlot instances
+            this.plots.forEach((plots, element, map) => {
+                plots.forEach((plot) => {
+                    plot.destroy();
+                });
+            });
+
             // Reset the existing plots map for the new rendering
             this.plots = new Map();
 
