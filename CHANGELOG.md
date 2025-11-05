@@ -8,6 +8,7 @@
 - Use locale to adjust time format in legend
 - Fix inconsistent collapsible behavior during autorefresh
 - Add the option to configure custom timeranges
+- Fix memory leak in chart rendering
 
 ## v0.1.2
 
