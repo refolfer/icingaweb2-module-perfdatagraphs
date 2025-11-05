@@ -22,6 +22,7 @@ trait PerfdataChart
     use Translation;
 
     /**
+     * generateID generate a unique and safe ID for each chart.
      * @param string $hostName Name of the host
      * @param string $serviceName Name of the service
      * @param string $checkcommandName Name of the checkcommand
@@ -29,17 +30,8 @@ trait PerfdataChart
      */
     private function generateID(string $hostName, string $serviceName, string $checkCommandName): string
     {
-        $result = sprintf('%s-%s-%s', $hostName, $serviceName, $checkCommandName);
-
-        $replace = [
-            '/\s+/' => '_',
-        ];
-
-        return preg_replace(
-            array_keys($replace),
-            array_values($replace),
-            trim($result)
-        );
+        // Since there might be whatever in the names.
+        return rtrim(base64_encode(sprintf('%s-%s-%s', $hostName, $serviceName, $checkCommandName)), '=');
     }
 
     /**
