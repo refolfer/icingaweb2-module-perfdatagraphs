@@ -31,10 +31,10 @@ increase the complexity of this module.
 
 An option to manually merge metrics into one chart could be added in the future.
 
-### Fixed time range selection
+### Gaps when there is no data
 
-We decided to have a fixed set of time ranges to choose from.
-Having user input for the time ranges would increase the complexity of this module.
+If there is missing data, the chart will show gaps and will not connect the data points to avoid misinterpretation.
+Changes in a check interval are automatically accounted for.
 
 ### Custom variables
 
