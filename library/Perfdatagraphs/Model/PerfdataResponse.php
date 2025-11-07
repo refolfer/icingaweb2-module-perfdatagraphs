@@ -100,13 +100,15 @@ class PerfdataResponse implements JsonSerializable
      * getDataset returns a dataset by its name.
      *
      * @param string $title the dataset to return
-     * @return PerfdataSet
+     * @return ?PerfdataSet
      */
     public function getDataset(string $title): ?PerfdataSet
     {
         if (array_key_exists($title, $this->data)) {
             return $this->data[$title];
         }
+
+        return null;
     }
 
     /**
