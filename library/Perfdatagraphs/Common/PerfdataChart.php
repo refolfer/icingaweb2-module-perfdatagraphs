@@ -137,7 +137,7 @@ trait PerfdataChart
                 $main->add(HtmlElement::create(
                     'p',
                     ['class' => 'line-chart-error preformatted'],
-                    sprintf($msg, join(' ', $perfdata->errors)),
+                    sprintf($msg, join(' ', $perfdata->getErrors())),
                 ));
                 return $main;
             }
@@ -147,7 +147,7 @@ trait PerfdataChart
                 $main->add(HtmlElement::create(
                     'p',
                     ['class' => 'line-chart-error preformatted'],
-                    sprintf($msg, join(' ', $perfdata->errors)),
+                    sprintf($msg, join(' ', $perfdata->getErrors())),
                 ));
                 return $main;
             }
