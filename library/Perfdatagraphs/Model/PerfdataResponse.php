@@ -19,6 +19,8 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * getErrors returns the errors.
+     *
+     * @return array
      */
     public function getErrors(): array
     {
@@ -27,16 +29,20 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * setErrors override the errors array.
+     *
      * @param array $errors errors to set
+     * @return void
      */
-    public function setErrors(array $errors): array
+    public function setErrors(array $errors): void
     {
-        return $this->errors = $errors;
+        $this->errors = $errors;
     }
 
     /**
      * addError adds an error message to this object.
+     *
      * @param string $e error message to append
+     * @return void
      */
     public function addError(string $e): void
     {
@@ -45,6 +51,8 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * hasErrors checks if this response has any errors.
+     *
+     * @return bool
      */
     public function hasErrors(): bool
     {
@@ -56,6 +64,8 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * isValid checks if this response contains data
+     *
+     * @return bool
      */
     public function isEmpty(): bool
     {
@@ -64,6 +74,8 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * isValid checks if this response contains valid data
+     *
+     * @return bool
      */
     public function isValid(): bool
     {
@@ -90,10 +102,11 @@ class PerfdataResponse implements JsonSerializable
      * setDatasets overrides the datasets.
      *
      * @param array $data the dataset to set
+     * @return void
      */
-    public function setDatasets(array $data): array
+    public function setDatasets(array $data): void
     {
-        return $this->data = $data;
+        $this->data = $data;
     }
 
     /**
@@ -113,7 +126,9 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * addDataset adds a new PerfdataSet (which respresents a single chart in the frontend).
+     *
      * @param PerfdataSet $ds the dataset to add
+     * @return void
      */
     public function addDataset(PerfdataSet $ds): void
     {
@@ -122,6 +137,8 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * jsonSerialize implements JsonSerializable
+     *
+     * @return mixed
      */
     public function jsonSerialize(): mixed
     {
@@ -168,6 +185,7 @@ class PerfdataResponse implements JsonSerializable
      * If the functionality remains here, we should optimize if for performance.
      *
      * @param array $customvars The custom variables for the given object
+     * @return void
      */
     public function mergeCustomVars(array $customvars): void
     {
@@ -205,7 +223,9 @@ class PerfdataResponse implements JsonSerializable
     /**
      * setDatasetToHighlight sets a given dataset at the beginning of
      * the data array, so that it is rendered first.
+     *
      * @param string $name the name of the dataset to highlight
+     * @return void
      */
     public function setDatasetToHighlight(string $name): void
     {

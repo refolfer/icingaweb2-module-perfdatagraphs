@@ -27,6 +27,8 @@ class PerfdataSeries implements JsonSerializable
 
     /**
      * getName returns the name for the series
+     *
+     * @return string
      */
     public function getName(): string
     {
@@ -35,24 +37,30 @@ class PerfdataSeries implements JsonSerializable
 
     /**
      * setName sets the name for the series
+     *
      * @param string $name
+     * @return void
      */
-    public function setName($name): string
+    public function setName(string $name): void
     {
-        return $this->name = $name;
+        $this->name = $name;
     }
 
     /**
      * getValues returns the values for the series
+     *
+     * @return iterable
      */
-    public function getValues(): string
+    public function getValues(): iterable
     {
         return $this->values;
     }
 
     /**
      * addValue adds a value to the series
+     *
      * @param mixed $value
+     * @return void
      */
     public function addValue(mixed $value): void
     {
@@ -61,15 +69,19 @@ class PerfdataSeries implements JsonSerializable
 
     /**
      * setValues sets the values for the series
-     * @param string $values
+     *
+     * @param iterable $values
+     * @return void
      */
-    public function setValues($values): string
+    public function setValues(iterable $values): void
     {
-        return $this->values = $values;
+        $this->values = $values;
     }
 
     /**
      * jsonSerialize implements JsonSerializable
+     *
+     * @return mixed
      */
     public function jsonSerialize(): mixed
     {
@@ -88,6 +100,8 @@ class PerfdataSeries implements JsonSerializable
 
     /**
      * isEmpty checks if this series contains data and if the data is not null
+     *
+     * @return bool
      */
     public function isEmpty(): bool
     {
@@ -107,6 +121,8 @@ class PerfdataSeries implements JsonSerializable
 
     /**
      * isValid checks if this series contains valid data
+     *
+     * @return bool
      */
     public function isValid(): bool
     {
