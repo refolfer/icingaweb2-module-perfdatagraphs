@@ -36,6 +36,16 @@ Configuration options are limited by design.
 
 Documentation for this module is available at [doc](doc/).
 
+## Known Issues
+
+### Timeout or page performance degeration when rendering many charts
+
+When there are many performance data timeseries for a singe check command,
+and the selected time range is very long, fetching the data might timeout.
+
+Use `perfdatagraphs_config_metrics_exlude` and `perfdatagraphs_config_metrics_include`
+to reduce the amout of data being loaded.
+
 # Road to Version 1.0.0
 
 What our current idea for a version 1.0.0 of this module is:
