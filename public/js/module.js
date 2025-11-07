@@ -57,7 +57,22 @@
                 _this.currentCursor = null;
             }
 
-            _this.renderCharts();
+            // Remove leftover eventhandlers and uPlot instances
+            _this.plots.forEach((plot, element) => {
+                plot.destroy();
+            });
+            // Then, reset the existing plots map for the new rendering
+            _this.plots = new Map();
+
+            // Get the elements we going to render the charts in
+            const lineCharts = document.querySelectorAll(CHART_CLASS);
+
+            // Check if the elements exist, just to be safe
+            if (lineCharts.length < 1) {
+                return;
+            }
+
+            _this.renderCharts(lineCharts);
         }
 
         /**
@@ -198,7 +213,7 @@
         /**
          * renderCharts creates the canvas objects given the provided datasets.
          */
-        renderCharts()
+        renderCharts(lineCharts)
         {
             // Get the colors from these sneaky little HTML elements
             const axesColor = $('div.axes-color').css('background-color');
@@ -208,24 +223,11 @@
             // These are the shared options for all charts
             const baseOpts = this.getChartBaseOptions();
 
-            // Remove leftover eventhandlers and uPlot instances
-            this.plots.forEach((plot, element) => {
-                plot.destroy();
-            });
-            // Then, reset the existing plots map for the new rendering
-            this.plots = new Map();
-
-            // Get the elements we going to render the charts in
-            const lineCharts = document.querySelectorAll(CHART_CLASS);
-
-            // Check if the elements exist, just to be safe
-            if (lineCharts.length < 1) {
-                return;
-            }
-
             this.icinga.logger.debug('perfdatagraphs', 'start renderCharts');
 
             for (let elem of lineCharts) {
+                this.icinga.logger.debug('perfdatagraphs', 'rendering for', elem);
+
                 const dataset = JSON.parse(elem.getAttribute('data-perfdata'));
 
                 // The size can vary from chart to chart for example when
