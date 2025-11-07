@@ -4,6 +4,7 @@ namespace Icinga\Module\Perfdatagraphs\Common;
 
 use Icinga\Module\Perfdatagraphs\Widget\QuickActions;
 
+use Icinga\Application\Benchmark;
 use Icinga\Util\Json;
 
 use ipl\Html\Html;
@@ -111,6 +112,8 @@ trait PerfdataChart
         // base64 since there can be whatever in the names
         $cacheKey = base64_encode($hostName . $serviceName . $checkCommandName . $duration . $h);
 
+        Benchmark::measure('Rendering performance data elements');
+
         // Get data from cache if it is available
         $datasets = $source->getDataFromCache($cacheKey, $cacheDurationInSeconds);
 
@@ -175,6 +178,8 @@ trait PerfdataChart
         }
 
         $main->add($charts);
+
+        Benchmark::measure('Rendered performance data elements');
 
         // We only need the toggle button when there are more charts
         if (count($datasets) > 1) {
