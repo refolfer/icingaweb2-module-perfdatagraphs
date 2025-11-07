@@ -11,9 +11,6 @@
     const CHART_LEGEND_FORMAT = new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'medium'}).format;
 
     class Perfdatagraphs extends Icinga.EventListener {
-        // data contains the fetched chart data with the element ID where it is rendered as key.
-        // Where we store data in between the autorefresh.
-        data = new Map();
         // plots contains the chart objects with the element ID where it is rendered as key.
         // Used for resizing the charts.
         plots = new Map();
@@ -50,6 +47,7 @@
             let _this = event.data.self;
 
             if (!isAutorefresh) {
+                _this.icinga.logger.debug('perfdatagraphs', 'not an autorefresh. resetting');
                 // Reset the selection and set the duration when it's
                 // an autorefresh and new data is being loaded.
                 // _this.currentSelect = {min: 0, max: 0};
@@ -57,34 +55,6 @@
                 // 1: value, 2: warning, 3: critical
                 _this.currentSeriesShow = {};
                 _this.currentCursor = null;
-            }
-
-            // Now we fetch
-            _this.fetchData();
-            // ...and render in case we already have data
-            _this.renderCharts();
-        }
-
-        /**
-         * fetchData tries to get the data for the given object from the Controller.
-         */
-        fetchData()
-        {
-            var _this = this;
-
-            // Get the elements we going to render the charts in
-            const lineCharts = document.querySelectorAll(CHART_CLASS);
-            // Check if the elements exist, just to be safe
-            if (lineCharts.length < 1) {
-                return;
-            }
-
-            _this.icinga.logger.debug('perfdatagraphs', 'start fetchData', lineCharts);
-
-            for (let elem of lineCharts) {
-                const perfdata = JSON.parse(elem.getAttribute('data-perfdata'));
-
-                _this.data.set(elem.getAttribute('id'), perfdata);
             }
 
             _this.renderCharts();
@@ -245,11 +215,18 @@
             // Then, reset the existing plots map for the new rendering
             this.plots = new Map();
 
-            this.icinga.logger.debug('perfdatagraphs', 'start renderCharts', this.data);
+            // Get the elements we going to render the charts in
+            const lineCharts = document.querySelectorAll(CHART_CLASS);
 
-            this.data.forEach((dataset, elemID) => {
-                // Get the element in which we render the chart
-                const elem = document.getElementById(elemID);
+            // Check if the elements exist, just to be safe
+            if (lineCharts.length < 1) {
+                return;
+            }
+
+            this.icinga.logger.debug('perfdatagraphs', 'start renderCharts');
+
+            for (let elem of lineCharts) {
+                const dataset = JSON.parse(elem.getAttribute('data-perfdata'));
 
                 if (elem === null) {
                     return;
@@ -353,9 +330,9 @@
 
                 // Add the chart to the map which we use for the resize observer
                 this.plots.set(elem, u);
-            });
+            }
 
-            this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts', this.plots);
+            this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
         }
 
         /**
