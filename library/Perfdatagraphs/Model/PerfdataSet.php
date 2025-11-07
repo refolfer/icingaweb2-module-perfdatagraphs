@@ -28,7 +28,7 @@ class PerfdataSet implements JsonSerializable
     /** @var iterable The timstamps for this dataset */
     protected iterable $timestamps = [];
 
-    /** @var array List of PerfdataSeries for this dataset */
+    /** @var array Associative array of PerfdataSeries for this dataset with their name as key */
     protected array $series = [];
 
     /**
@@ -43,6 +43,8 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * jsonSerialize implements JsonSerializable
+     *
+     * @return mixed
      */
     public function jsonSerialize(): mixed
     {
@@ -80,6 +82,8 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * isEmpty checks if this dataset contains data
+     *
+     * @return bool
      */
     public function isEmpty(): bool
     {
@@ -101,6 +105,8 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * isValid checks if this dataset contains valid data
+     *
+     * @return bool
      */
     public function isValid(): bool
     {
@@ -127,6 +133,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getTitle gets the title of this dataset.
+     *
      * @return string The title of this dataset
      */
     public function getTitle(): string
@@ -136,7 +143,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setTitle sets the title of this dataset.
+     *
      * @param string $title The title to set
+     * @return void
      */
     public function setTitle(string $title): void
     {
@@ -155,7 +164,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setUnit sets the unit for this data series.
+     *
      * @param string $unit The unit to set
+     * @return void
      */
     public function setUnit(string $unit): void
     {
@@ -164,6 +175,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getFill gets the fill of this dataset.
+     *
      * @return string The fill of this dataset
      */
     public function getFill(): string
@@ -173,7 +185,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setFill sets the fill color of the data series.
+     *
      * @param string $fill
+     * @return void
      */
     public function setFill(string $fill): void
     {
@@ -182,6 +196,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getStroke gets the stroke of this dataset.
+     *
      * @return string the stroke of this dataset
      */
     public function getStroke(): string
@@ -191,7 +206,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setStroke sets the stroke color of the data series.
+     *
      * @param string $s
+     * @return void
      */
     public function setStroke(string $s): void
     {
@@ -200,6 +217,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getShow gets the show of this dataset.
+     *
      * @return bool value of show of this dataset
      */
     public function getShow(): bool
@@ -209,7 +227,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setShow sets the show color of the data series.
+     *
      * @param bool $s
+     * @return void
      */
     public function setShow(bool $s): void
     {
@@ -218,6 +238,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getSeries gets the series of this dataset.
+     *
      * @return array The series of this dataset
      */
     public function getSeries(): array
@@ -227,15 +248,19 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setSeries overrides the series of this dataset.
-     * @return array The series to set
+     *
+     * @param array $series the series for this dataset
+     * @return void
      */
-    public function setSeries(array $series): array
+    public function setSeries(array $series): void
     {
-        return $this->series = $series;
+        $this->series = $series;
     }
 
     /**
      * addSeries adds a new data series to this dataset.
+     * Series are stored by name, this will override a series with same name.
+     *
      * @param PerfdataSeries $s
      */
     public function addSeries(PerfdataSeries $s): void
@@ -245,6 +270,7 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * getTimestamps gets the timestamps of this dataset.
+     *
      * @return iterable the timestamps of this dataset
      */
     public function getTimestamps(): iterable
@@ -254,7 +280,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * setTimestamps sets the timestamps for this dataset.
+     *
      * @param iterable $ts
+     * @return void
      */
     public function setTimestamps(iterable $ts): void
     {
@@ -263,7 +291,9 @@ class PerfdataSet implements JsonSerializable
 
     /**
      * addTimestamp adds a timestamp to this dataset.
+     *
      * @param mixed $timestamp The timestamp to add
+     * @return void
      */
     public function addTimestamp(mixed $timestamp): void
     {
