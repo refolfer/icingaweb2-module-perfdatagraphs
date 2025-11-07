@@ -30,10 +30,10 @@
             // when their respective .container changes size.
             this.resizeObserver = new ResizeObserver(entries => {
                 for (let elem of entries) {
-                    const _plots = this.plots.get(elem.target) ?? [];
-                    const s = this.getChartSize(elem.contentRect.width);
-                    for (let u of _plots) {
-                        u.setSize(s);
+                    const plot = this.plots.get(elem.target);
+                    if (plot !== undefined) {
+                        const s = this.getChartSize(elem.contentRect.width);
+                        plot.setSize(s);
                     }
                 }
             });
@@ -57,7 +57,6 @@
                 // 1: value, 2: warning, 3: critical
                 _this.currentSeriesShow = {};
                 _this.currentCursor = null;
-                _this.data = new Map();
             }
 
             // Now we fetch
@@ -86,8 +85,9 @@
                 const perfdata = JSON.parse(elem.getAttribute('data-perfdata'));
 
                 _this.data.set(elem.getAttribute('id'), perfdata);
-                _this.renderCharts();
             }
+
+            _this.renderCharts();
         }
 
         /**
@@ -239,18 +239,15 @@
             const baseOpts = this.getChartBaseOptions();
 
             // Remove leftover eventhandlers and uPlot instances
-            this.plots.forEach((plots, element, map) => {
-                plots.forEach((plot) => {
-                    plot.destroy();
-                });
+            this.plots.forEach((plot, element) => {
+                plot.destroy();
             });
-
-            // Reset the existing plots map for the new rendering
+            // Then, reset the existing plots map for the new rendering
             this.plots = new Map();
 
             this.icinga.logger.debug('perfdatagraphs', 'start renderCharts', this.data);
 
-            this.data.forEach((dataset, elemID, map) => {
+            this.data.forEach((dataset, elemID) => {
                 // Get the element in which we render the chart
                 const elem = document.getElementById(elemID);
 
@@ -355,11 +352,7 @@
                 }
 
                 // Add the chart to the map which we use for the resize observer
-                const _plots = this.plots.get(elem) || [];
-
-                _plots.push(u)
-
-                this.plots.set(elem, _plots);
+                this.plots.set(elem, u);
             });
 
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts', this.plots);
