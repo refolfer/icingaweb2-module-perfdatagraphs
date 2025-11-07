@@ -228,10 +228,6 @@
             for (let elem of lineCharts) {
                 const dataset = JSON.parse(elem.getAttribute('data-perfdata'));
 
-                if (elem === null) {
-                    return;
-                }
-
                 // The size can vary from chart to chart for example when
                 // there are two contains on the page.
                 let opts = {...baseOpts, ...this.getChartSize(elem.offsetWidth)};
