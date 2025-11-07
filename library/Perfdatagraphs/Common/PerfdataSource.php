@@ -10,6 +10,7 @@ use Icinga\Module\Perfdatagraphs\ProvidedHook\Icingadb\IcingadbSupport;
 use Icinga\Module\Perfdatagraphs\Icingadb\IcingaObjectHelper as IcinaDBCVH;
 use Icinga\Module\Perfdatagraphs\Ido\IcingaObjectHelper as IdoCVH;
 
+use Icinga\Application\Benchmark;
 use Icinga\Application\Modules\Module;
 use Icinga\Application\Logger;
 
@@ -86,6 +87,8 @@ class PerfdataSource
     {
         $response = new PerfdataResponse();
 
+        Benchmark::measure('Fetching performance data');
+
         if (Module::exists('icingadb') && IcingadbSupport::useIcingaDbAsBackend()) {
             Logger::debug('Used IcingaDB as database backend');
             $cvh = new IcinaDBCVH();
@@ -156,6 +159,8 @@ class PerfdataSource
         if ($customvars[$cvh::CUSTOM_VAR_CONFIG_HIGHLIGHT] ?? false) {
             $response->setDatasetToHighlight($customvars[$cvh::CUSTOM_VAR_CONFIG_HIGHLIGHT] ?? '');
         }
+
+        Benchmark::measure('Fetched performance data');
 
         return $response;
     }
