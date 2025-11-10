@@ -22,6 +22,26 @@ This should also be used as a reference for future development.
 This module aims to be a "batteries included" and opinionated solution.
 Configuration options are limited by design.
 
+### Data in PHP and charts in JavaScript
+
+All data processing will be done in PHP and the data is then handed over to JavaScript for rendering.
+
+We decided to use JavaScript client-side rendering because it offered simple interactivity (e.g. zoom).
+In the initial phase we saw that canvas-based rendering offered better performance than AVG when there is
+a large amount of datapoints.
+
+[uPlot](https://github.com/leeoniya/uPlot) was chosen for its minimalism and focus on time series.
+
+Initially, JavaScript fetched the all data as JSON via a PHP controller and then rendered the individual charts.
+This had the benefit of client-side caching. However, this had some drawbacks. First, all JSON data had to be prepared as a whole, which caused memory issued with PHP. Second, since the amount of elements the page was not known before rendering it caused issues with the collapsible feature.
+
+Currently we add an DOM element for each chart and attach its datapoints as a data attribute.
+The JavaScript part of the module simply iterates over the elements, extracts the data attribute and renders the chart.
+This solves some of the initial drawbacks, however, it also comes with its own issues.
+
+None of this is set in stone and might change should other implementations offer a better solution.
+If you have ideas for improvements, let us know!
+
 ### A chart for each metric
 
 There is a separate chart for each metric because the magnitude of performance data for a single check plugin
