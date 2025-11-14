@@ -10,7 +10,8 @@ use JsonSerializable;
  */
 class PerfdataResponse implements JsonSerializable
 {
-    // List of PerfdataSets with their title as key
+    // List of PerfdataSets with their title as key.
+    // We use 'title' for datasets and 'name' for dataseries
     // ['rta'] = <PerfdataSet>
     protected array $data = [];
 
@@ -110,7 +111,7 @@ class PerfdataResponse implements JsonSerializable
     }
 
     /**
-     * getDataset returns a dataset by its name.
+     * getDataset returns a dataset by its title.
      *
      * @param string $title the dataset to return
      * @return ?PerfdataSet
@@ -137,14 +138,14 @@ class PerfdataResponse implements JsonSerializable
 
     /**
      * removeDataset removes a data set from this response.
-     * Datasets are stored by name, this will remove a set by its name.
+     * Datasets are stored by title, this will remove a set by its title.
      *
-     * @param string $name
+     * @param string $title
      */
-    public function removeDataset(string $name): void
+    public function removeDataset(string $title): void
     {
-        if (array_key_exists($name, $this->data)) {
-            unset($this->data[$name]);
+        if (array_key_exists($title, $this->data)) {
+            unset($this->data[$title]);
         }
     }
 
@@ -237,17 +238,17 @@ class PerfdataResponse implements JsonSerializable
      * setDatasetToHighlight sets a given dataset at the beginning of
      * the data array, so that it is rendered first.
      *
-     * @param string $name the name of the dataset to highlight
+     * @param string $title the title of the dataset to highlight
      * @return void
      */
-    public function setDatasetToHighlight(string $name): void
+    public function setDatasetToHighlight(string $title): void
     {
-        if (!array_key_exists($name, $this->data)) {
+        if (!array_key_exists($title, $this->data)) {
             return;
         }
 
-        $value = [$name => $this->data[$name]];
-        unset($this->data[$name]);
+        $value = [$title => $this->data[$title]];
+        unset($this->data[$title]);
 
         $this->data = $value + $this->data;
     }
