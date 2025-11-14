@@ -17,7 +17,7 @@
         currentCursor = null;
         currentSeriesShow = {};
 
-        initialRange = [0, 0];
+        initialRange = null;
 
         constructor(icinga)
         {
@@ -157,15 +157,14 @@
                     x: {
                         time: true,
                         range: (u, min, max) => {
-                            // if (this.initialRange === null) {
-                            //     console.log(min, max);
-                                return [min, max];
-                            // }
-
-                            // const r = this.initialRange.slice();
-                            // this.initialRange = null;
-                            // console.log(r);
-                            // return r;
+                            let range = [min, max];
+                            if (this.initialRange !== null) {
+                                console.log(this.initialRange);
+                                range = this.initialRange;
+                                this.initialRange = null;
+                            }
+                            console.log(range);
+                            return range;
                         }
                        },
                     y: {
