@@ -136,6 +136,19 @@ class PerfdataResponse implements JsonSerializable
     }
 
     /**
+     * removeDataset removes a data set from this response.
+     * Datasets are stored by name, this will remove a set by its name.
+     *
+     * @param string $name
+     */
+    public function removeDataset(string $name): void
+    {
+        if (array_key_exists($name, $this->data)) {
+            unset($this->data[$name]);
+        }
+    }
+
+    /**
      * jsonSerialize implements JsonSerializable
      *
      * @return mixed

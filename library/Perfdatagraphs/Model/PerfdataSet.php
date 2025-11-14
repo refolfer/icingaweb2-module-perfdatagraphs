@@ -269,6 +269,19 @@ class PerfdataSet implements JsonSerializable
     }
 
     /**
+     * removeSeries removes a data series from this dataset.
+     * Series are stored by name, this will remove a series by its name.
+     *
+     * @param string $name
+     */
+    public function removeSeries(string $name): void
+    {
+        if (array_key_exists($name, $this->series)) {
+            unset($this->series[$name]);
+        }
+    }
+
+    /**
      * getTimestamps gets the timestamps of this dataset.
      *
      * @return iterable the timestamps of this dataset
