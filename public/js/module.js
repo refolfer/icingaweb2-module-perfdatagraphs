@@ -152,7 +152,9 @@
                 cursor: { sync: { key: 0, setSeries: true } },
                 tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), timezone),
                 scales: {
-                    x: { time: true },
+                    x: {
+                        time: true
+                    },
                     y: { range: {
                             min: {
                                 soft: 0,
@@ -233,6 +235,8 @@
 
                 const dataset = JSON.parse(elem.getAttribute('data-perfdata'));
 
+                const initialRange = parseInt(elem.getAttribute('data-duration'));
+
                 // The size can vary from chart to chart for example when
                 // there are two contains on the page.
                 let opts = {...baseOpts, ...this.getChartSize(elem.offsetWidth)};
@@ -280,6 +284,9 @@
 
                 let u = new uPlot(opts, [], elem);
                 // Where we store the finished data for the chart
+
+                dataset.timestamps.unshift(initialRange);
+
                 let d = [dataset.timestamps];
 
                 // Create the data for the plot and add the series
@@ -288,6 +295,7 @@
                     // // The series we are going to add (e.g. values, warn, crit, etc.)
                     let set = dataset.series[idx].values;
                     set = this.ensureArray(set);
+                    set.unshift(null);
 
                     // See if there are series options from the last autorefresh
                     // if so we use them, otherwise the default.
