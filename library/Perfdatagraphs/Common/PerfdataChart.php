@@ -120,35 +120,23 @@ trait PerfdataChart
         // If not, fetch the perfdata for a given object via the hook.
         if (!$datasets) {
             $perfdata = $source->fetchDataViaHook($hostName, $serviceName, $checkCommandName, $duration, $isHostCheck);
+            $msg = null;
 
             // Error handling, if this gets too long, we could move this to a method.
-            if ($perfdata->isEmpty()) {
-                $msg = $this->translate('No data received');
-                $main->add(HtmlElement::create(
-                    'p',
-                    ['class' => 'line-chart-error preformatted'],
-                    $msg,
-                ));
-                return $main;
+            if ($perfdata->hasErrors()) {
+                $msg = sprintf($this->translate('Error while fetching data: %s'), join(' ', $perfdata->getErrors()));
             }
 
-            if ($perfdata->hasErrors()) {
-                $msg = $this->translate('Error while fetching performance data: %s');
-                $main->add(HtmlElement::create(
-                    'p',
-                    ['class' => 'line-chart-error preformatted'],
-                    sprintf($msg, join(' ', $perfdata->getErrors())),
-                ));
-                return $main;
+            if ($perfdata->isEmpty()) {
+                $msg = $msg . ' ' . $this->translate('No data received.');
             }
 
             if (!$perfdata->isValid()) {
-                $msg = $this->translate('Invalid data received: %s');
-                $main->add(HtmlElement::create(
-                    'p',
-                    ['class' => 'line-chart-error preformatted'],
-                    sprintf($msg, join(' ', $perfdata->getErrors())),
-                ));
+                $msg = $msg . ' ' . sprintf($this->translate('Invalid data received: %s'), join(' ', $perfdata->getErrors()));
+            }
+
+            if (isset($msg)) {
+                $main->add(HtmlElement::create('p', ['class' => 'line-chart-error preformatted'], $msg));
                 return $main;
             }
 
