@@ -9,7 +9,8 @@ the respective performance data.
 
 The data is fetched by a "backend module", at least one backend module also need to be enabled:
 
-* [Graphite backend](https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-graphite/)
+* [Elasticsearch backend](https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-elasticsearch)
+* [Graphite backend](https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-graphite)
 * [Influxdb v1 backend](https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-influxdbv1)
 * [Influxdb v2 backend](https://github.com/NETWAYS/icingaweb2-module-perfdatagraphs-influxdbv2)
 * [Write your own backend](doc/20-PerfdataSourceHook.md)
