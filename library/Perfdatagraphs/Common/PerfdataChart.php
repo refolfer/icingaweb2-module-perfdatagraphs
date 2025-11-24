@@ -117,6 +117,8 @@ trait PerfdataChart
         // Get data from cache if it is available
         $datasets = $source->getDataFromCache($cacheKey, $cacheDurationInSeconds);
 
+        $main->add((new QuickActions(Url::fromRequest())));
+
         // If not, fetch the perfdata for a given object via the hook.
         if (!$datasets) {
             $perfdata = $source->fetchDataViaHook($hostName, $serviceName, $checkCommandName, $duration, $isHostCheck);
@@ -148,8 +150,6 @@ trait PerfdataChart
             // since the rest is just relevant for the request.
             $source->storeDataToCache($cacheKey, $datasets);
         }
-
-        $charts->add((new QuickActions(Url::fromRequest())));
 
         // Elements in which the charts will get rendered.
         // We use attributes on this elements to transport data
