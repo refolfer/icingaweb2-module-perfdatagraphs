@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.2
+
+- Fix ellipsis in error messages
+- Fix time range controls not being shown on error
+
 ## v0.2.1
 
 - Fix timezone not being used
