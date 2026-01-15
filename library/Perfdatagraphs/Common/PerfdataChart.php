@@ -5,6 +5,7 @@ namespace Icinga\Module\Perfdatagraphs\Common;
 use Icinga\Module\Perfdatagraphs\Widget\QuickActions;
 
 use Icinga\Application\Benchmark;
+use Icinga\Application\Logger;
 use Icinga\Util\Json;
 
 use ipl\Html\Html;
@@ -127,6 +128,7 @@ trait PerfdataChart
             // Error handling, if this gets too long, we could move this to a method.
             if ($perfdata->hasErrors()) {
                 $msg = sprintf($this->translate('Error while fetching data: %s'), join(' ', $perfdata->getErrors()));
+                Logger::debug('Error while fetching data: %s', Json::sanitize($perfdata));
             }
 
             if ($perfdata->isEmpty()) {
@@ -135,6 +137,7 @@ trait PerfdataChart
 
             if (!$perfdata->isValid()) {
                 $msg = $msg . ' ' . sprintf($this->translate('Invalid data received: %s'), join(' ', $perfdata->getErrors()));
+                Logger::debug('Invalid data received: %s', Json::sanitize($perfdata));
             }
 
             if (isset($msg)) {
