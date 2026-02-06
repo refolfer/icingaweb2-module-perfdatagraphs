@@ -33,6 +33,25 @@
                 }
             });
 
+            // We register a IntersectionObserver so that we can
+            // do some lazy-loading.
+            this.intersectionObserver = new IntersectionObserver(entries => {
+                for (let elem of entries) {
+                    const plot = this.plots.get(elem.target);
+                    if (plot === undefined) {
+                        continue;
+                    }
+                    // When the element not onscreen, we hide it and tell the resizeObserver to unobserve
+                    if (elem.isIntersecting) {
+                        elem.target.style.visibility = "visible";
+                        this.resizeObserver.observe(elem.target);
+                    } else {
+                        elem.target.style.visibility = "hidden";
+                        this.resizeObserver.unobserve(elem.target);
+                    }
+                }
+            });
+
             // TODO: The 'rendered' selectors might not yet be optimal.
             this.on('rendered', '#main > .icinga-module, #main > .container', this.rendered, this);
         }
@@ -240,6 +259,10 @@
                 // Add each element to the resize observer so that we can
                 // resize the chart when its container changes
                 this.resizeObserver.observe(elem);
+
+                // Add each element to the intersect observer so that we can
+                // load/unload elements
+                this.intersectionObserver.observe(elem);
 
                 // Reset the existing canvas elements for the new rendering
                 elem.replaceChildren();
