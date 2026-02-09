@@ -104,11 +104,12 @@ If the given metric is unavailable, the order given by the backend will be used.
 
 ### perfdatagraphs_metrics
 
-The custom variables `perfdatagraphs_metrics (dictionary)` is used to modify a specific graph:
+The custom variables `perfdatagraphs_metrics (dictionary)` can be used to modify a specific graph:
 
-- `unit`, unit of this metric
-- `fill`, color of the inside of the graph
-- `stroke` color of the line of the graph
+- `unit (string)`, unit of this metric
+- `fill (string)`, color of the inside of the graph, uses the format: `"rgba(255, 0, 30, 0.3)"`
+- `stroke (string)` color of the line of the graph, uses the format: `"rgba(255, 0, 30, 0.3)"`
+- `show_thresholds (bool)` show the warning/critical thresholds by default (default: true)
 
 The variable `perfdatagraphs_metrics` is a dictionary, its keys are the name of the metric
 you want to modify. Wildcards can be used with: `*`.
