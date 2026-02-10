@@ -151,6 +151,10 @@
             const opts = {
                 cursor: { sync: { key: 0, setSeries: true } },
                 tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), timezone),
+                fmtDate: tpl => {
+                    const tplNew = this.fmtDate(tpl, navigator.language);
+                    return uPlot.fmtDate(tplNew)
+                },
                 scales: {
                     x: { time: true },
                     y: { range: {
@@ -338,6 +342,53 @@
             }
 
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+        }
+
+        /**
+         * fmtDate reformats uPlot's template a given locale uses the sensible
+         * DMY, the cool YMD or the whatever MDY is.
+         * We use this when rendering the time in the plots axis
+         */
+        fmtDate(tpl, locale) {
+            const formatter = new Intl.DateTimeFormat(locale);
+            const parts = formatter.formatToParts(new Date(2024, 0, 2));
+            // This is generally not optimal but should work for now
+            const dateOrder = parts
+                  .filter(p => ['day', 'month', 'year'].includes(p.type))
+                  .map(p => p.type)
+                  .join('-');
+
+            // We always want to use a 24-hour timeformat, no am/pm
+            // Just for simplicity
+            let tplNew = tpl
+                .replace('{h}:{mm}{aa}', '{H}:{mm}')
+                .replace('{h}{aa}', '{H}:00');
+
+            // This is a bit hacky and not very flexible. However,
+            // uPlot doesn't have a good solution for this (yet).
+            // At least we can adjust for DMY,YMD,MDY
+            switch (dateOrder) {
+            case 'day-month-year':
+                tplNew = tplNew
+                    .replace('{M}/{D}/{YY}', '{D} {MMM} {YY}')
+                    .replace('{M}/{D}', '{D} {MMM}')
+                    .replace('{M}/{D}\n{YY}', '{D} {MMM}\n{YY}')
+                break;
+            case 'year-month-day':
+                tplNew = tplNew
+                    .replace('{M}/{D}/{YY}', '{YY} {MMM} {D}')
+                    .replace('{M}/{D}', '{MMM} {D}')
+                    .replace('{M}/{D}\n{YY}', '{YY} {MMM}\n{D}')
+                break;
+            case 'month-day-year':
+                tplNew = tplNew
+                    .replace('{M}/{D}/{YY}', '{MMM} {D} {YY}')
+                    .replace('{M}/{D}', '{MMM} {D}')
+                    .replace('{M}/{D}\n{YY}', '{D} {MMM}\n{YY}')
+                break;
+            }
+
+            return tplNew;
         }
 
         /**
