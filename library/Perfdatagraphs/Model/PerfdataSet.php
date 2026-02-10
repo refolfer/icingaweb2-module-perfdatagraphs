@@ -22,8 +22,8 @@ class PerfdataSet implements JsonSerializable
      /** @var string The stroke of this dataset */
     protected string $stroke;
 
-     /** @var string Display this dataset or not */
-    protected bool $show = true;
+     /** @var string Display this dataset's thresholds or not */
+    protected bool $showThresholds = true;
 
     /** @var iterable The timstamps for this dataset */
     protected iterable $timestamps = [];
@@ -66,8 +66,8 @@ class PerfdataSet implements JsonSerializable
             $d['stroke'] = $this->stroke;
         }
 
-        if (isset($this->show)) {
-            $d['show'] = $this->show;
+        if (isset($this->showThresholds)) {
+            $d['show_thresholds'] = $this->showThresholds;
         }
 
         if (isset($this->timestamps)) {
@@ -216,24 +216,24 @@ class PerfdataSet implements JsonSerializable
     }
 
     /**
-     * getShow gets the show of this dataset.
+     * getShowThresholds gets the show of this dataset.
      *
-     * @return bool value of show of this dataset
+     * @return bool value of showThresholds of this dataset
      */
-    public function getShow(): bool
+    public function getShowThresholds(): bool
     {
-        return $this->show;
+        return $this->showThresholds;
     }
 
     /**
-     * setShow sets the show color of the data series.
+     * setShowThresholds sets the show color of the data series.
      *
      * @param bool $s
      * @return void
      */
-    public function setShow(bool $s): void
+    public function setShowThresholds(bool $s): void
     {
-        $this->show = $s;
+        $this->showThresholds = $s;
     }
 
     /**

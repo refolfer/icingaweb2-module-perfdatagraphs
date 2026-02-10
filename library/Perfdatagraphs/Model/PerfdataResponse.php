@@ -231,6 +231,9 @@ class PerfdataResponse implements JsonSerializable
             if (isset($cvar['stroke'])) {
                 $this->data[$dkey]->setStroke($cvar['stroke']);
             }
+            if (isset($cvar['show_thresholds'])) {
+                $this->data[$dkey]->setShowThresholds($cvar['show_thresholds']);
+            }
         }
     }
 
