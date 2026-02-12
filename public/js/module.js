@@ -255,7 +255,11 @@
                 elem.replaceChildren();
 
                 // Create a new uplot chart for each performance dataset
-                dataset.timestamps = this.ensureArray(dataset.timestamps);
+                dataset.timestamps = this.ensureArray(dataset.timestamps ?? []);
+                if (!Array.isArray(dataset.series)) {
+                    this.icinga.logger.error('perfdatagraphs', 'dataset has no series array', dataset);
+                    continue;
+                }
                 // Base format function for the y-axis
                 let formatYFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
                 // Override the default uplot callback so that smaller values are
@@ -297,7 +301,7 @@
                 for (let idx = 0; idx < dataset.series.length; idx++) {
                     // // The series we are going to add (e.g. values, warn, crit, etc.)
                     let set = dataset.series[idx].values;
-                    set = this.ensureArray(set);
+                    set = this.ensureArray(set ?? []);
 
                     // We show all series by default unless warn/crit have show_thresholds to false
                     const defaultShow = dataset.series[idx].name === CHART_WARN_SERIESNAME || dataset.series[idx].name === CHART_CRIT_SERIESNAME
@@ -305,10 +309,10 @@
                           : true;
                     // See if there are series options from the last autorefresh
                     // if so we use them, otherwise the default.
-                    let show = this.currentSeriesShow[idx] ?? defaultShow;
+                    let show = this.currentSeriesShow[idx + 1] ?? defaultShow;
                     // Get the style either from the dataset or from CSS
-                    let stroke = dataset.stroke ?? valueColor;
-                    let fill = dataset.fill ?? this.ensureRgba(valueColor, 0.3);
+                    let stroke = dataset.stroke || valueColor;
+                    let fill = dataset.fill || this.ensureRgba(valueColor, 0.3);
 
                     // Add a new series to the plot. Need adjust the index, since 0 is the timestamps
                     if (dataset.series[idx].name === CHART_WARN_SERIESNAME) {
