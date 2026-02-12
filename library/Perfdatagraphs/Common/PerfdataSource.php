@@ -47,10 +47,18 @@ class PerfdataSource
     public function getDataFromCache(string $cacheKey, int $duration): array|false
     {
         // Check the cache for existing data
-        if ($cacheKey !== null && $duration > 0) {
+        if ($duration > 0) {
             if ($this->cache->has($cacheKey, time() - $duration)) {
                 Logger::debug('Found data in cache for ' . $cacheKey);
-                return unserialize($this->cache->get($cacheKey));
+                $cached = $this->cache->get($cacheKey);
+                $datasets = @unserialize($cached, ['allowed_classes' => false]);
+
+                if (is_array($datasets)) {
+                    return $datasets;
+                }
+
+                Logger::warning('Cached data for key %s is invalid, cache entry will be ignored', $cacheKey);
+                $this->cache->clear($cacheKey);
             }
         }
 

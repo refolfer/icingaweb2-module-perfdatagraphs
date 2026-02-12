@@ -113,7 +113,7 @@ class QuickActions extends BaseHtmlElement
                     'class' => 'action-link',
                     'title' => $this->translate($details['href_title']),
                 ],
-                [ new Icon($details['href_icon'] ?? 'calender'), $this->translate($details['display_name']) ]
+                [ new Icon($details['href_icon'] ?? 'calendar'), $this->translate($details['display_name']) ]
             );
 
             $this->add(Html::tag('li', $elem));

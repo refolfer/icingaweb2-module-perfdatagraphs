@@ -17,10 +17,10 @@ class PerfdataSet implements JsonSerializable
     protected string $unit;
 
      /** @var string The fill of this dataset */
-    protected string $fill;
+    protected string $fill = '';
 
      /** @var string The stroke of this dataset */
-    protected string $stroke;
+    protected string $stroke = '';
 
      /** @var string Display this dataset's thresholds or not */
     protected bool $showThresholds = true;
@@ -96,7 +96,7 @@ class PerfdataSet implements JsonSerializable
             $sets[] = $s->isEmpty();
         }
 
-        if (in_array(true, $sets, true)) {
+        if (!in_array(false, $sets, true)) {
             return true;
         }
 

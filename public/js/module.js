@@ -235,7 +235,13 @@
             for (let elem of lineCharts) {
                 this.icinga.logger.debug('perfdatagraphs', 'rendering for', elem);
 
-                const dataset = JSON.parse(elem.getAttribute('data-perfdata'));
+                let dataset;
+                try {
+                    dataset = JSON.parse(elem.getAttribute('data-perfdata'));
+                } catch (e) {
+                    this.icinga.logger.error('perfdatagraphs', 'failed to parse dataset payload', e);
+                    continue;
+                }
 
                 // The size can vary from chart to chart for example when
                 // there are two contains on the page.
@@ -510,6 +516,9 @@
                 value = n / 604800;
                 return `${value.toFixed(2)} weeks`;
             }
+
+            value = n / 31536000;
+            return `${value.toFixed(2)} years`;
         }
 
         /**
