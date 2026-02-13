@@ -472,8 +472,9 @@
             for (let entry of entries) {
                 const timestamps = this.ensureArray(entry.dataset.timestamps ?? []);
                 for (let ts of timestamps) {
-                    if (Number.isFinite(ts)) {
-                        timestampsSet.add(ts);
+                    const numericTs = this.toFiniteNumber(ts);
+                    if (numericTs !== null) {
+                        timestampsSet.add(numericTs);
                     }
                 }
             }
@@ -490,9 +491,10 @@
             const maxLen = Math.min(seriesTimestamps.length, values.length);
 
             for (let idx = 0; idx < maxLen; idx++) {
-                const ts = seriesTimestamps[idx];
-                if (Number.isFinite(ts)) {
-                    valueByTs.set(ts, values[idx] ?? null);
+                const numericTs = this.toFiniteNumber(seriesTimestamps[idx]);
+                if (numericTs !== null) {
+                    const numericVal = this.toFiniteNumber(values[idx]);
+                    valueByTs.set(numericTs, numericVal ?? null);
                 }
             }
 
@@ -627,11 +629,17 @@
 
             const looksLikeStorageMetric = group.entries.some(entry => {
                 const title = (entry.dataset.title ?? '').toLowerCase().trim();
-                if (/^[a-z]:$/.test(title)) {
+                const driveLetterPattern = /(^|[^a-z])[a-z]:([\\/]|$)/;
+                const storageKeywords = /(disk|drive|storage|memory|mem|ram|swap|cache|buffer|volume|filesystem|fs)/;
+
+                if (driveLetterPattern.test(title) || storageKeywords.test(title)) {
                     return true;
                 }
 
-                return /(disk|drive|storage|memory|mem|ram|swap|cache|buffer|volume|filesystem|fs)/.test(title);
+                return (entry.dataset.series ?? []).some(series => {
+                    const name = (series.name ?? '').toLowerCase().trim();
+                    return driveLetterPattern.test(name) || storageKeywords.test(name);
+                });
             });
 
             if (looksLikeStorageMetric || this.looksLikeBytesByMagnitude(group)) {
@@ -664,8 +672,9 @@
 
                     const seriesValues = this.ensureArray(s.values ?? []);
                     for (let v of seriesValues) {
-                        if (Number.isFinite(v) && v !== 0) {
-                            values.push(Math.abs(v));
+                        const numericValue = this.toFiniteNumber(v);
+                        if (numericValue !== null && numericValue !== 0) {
+                            values.push(Math.abs(numericValue));
                         }
                     }
                 }
@@ -892,11 +901,12 @@
          */
         formatBytesHuman(n, unitInfo = {factor: 1, base: 1000, rateSuffix: ''})
         {
-            if (!Number.isFinite(n)) {
+            const numericValue = this.toFiniteNumber(n);
+            if (numericValue === null) {
                 return n.toString();
             }
 
-            if (n === 0) {
+            if (numericValue === 0) {
                 return `0 B${unitInfo.rateSuffix ?? ''}`;
             }
 
@@ -906,7 +916,7 @@
                 ? ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
                 : ["B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
             const suffix = unitInfo.rateSuffix ?? '';
-            const bytes = n * factor;
+            const bytes = numericValue * factor;
             const abs = Math.abs(bytes);
             const maxIdx = units.length - 1;
             let idx = abs > 0 ? Math.floor(Math.log(abs) / Math.log(base)) : 0;
@@ -915,6 +925,31 @@
             const value = (bytes / Math.pow(base, idx)).toFixed(2);
 
             return `${value} ${units[idx]}${suffix}`;
+        }
+
+        /**
+         * toFiniteNumber converts numbers and numeric-looking strings to Number.
+         * Returns null for non-numeric values.
+         */
+        toFiniteNumber(value)
+        {
+            if (Number.isFinite(value)) {
+                return value;
+            }
+
+            if (typeof value === 'string') {
+                const normalized = value.trim().replace(',', '.');
+                if (normalized === '') {
+                    return null;
+                }
+
+                const numeric = Number(normalized);
+                if (Number.isFinite(numeric)) {
+                    return numeric;
+                }
+            }
+
+            return null;
         }
 
         /**
