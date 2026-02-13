@@ -16,5 +16,9 @@ final class QuickActionsTest extends TestCase
 
         $this->assertStringContainsString('class="quick-actions"', $rendered);
         $this->assertStringContainsString('perfdatagraphs.duration=', $rendered);
+        $this->assertStringContainsString('P1Y', $rendered);
+        $this->assertStringContainsString('name="perfdatagraphs.from"', $rendered);
+        $this->assertStringContainsString('name="perfdatagraphs.to"', $rendered);
+        $this->assertStringContainsString('name="perfdatagraphs.mode"', $rendered);
     }
 }

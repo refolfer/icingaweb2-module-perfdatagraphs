@@ -14,6 +14,8 @@ class PerfdataRequest
     protected bool $isHostCheck;
     protected array $includeMetrics = [];
     protected array $excludeMetrics = [];
+    protected ?int $startTimestamp = null;
+    protected ?int $endTimestamp = null;
 
     /**
      * The duration uses the ISO8601 Durations format as string,
@@ -31,6 +33,8 @@ class PerfdataRequest
      * @param bool $isHostCheck is this a Host or Service Check that is requested. Backends queries might differ for these.
      * @param array $includeMetrics a list of metrics that are requested, if not set all available metrics should be returned
      * @param array $excludeMetrics a list of metrics should be excluded from the results, if not set no metrics should be excluded
+     * @param int|null $startTimestamp explicit range start as UNIX timestamp, optional
+     * @param int|null $endTimestamp explicit range end as UNIX timestamp, optional
      */
     public function __construct(
         string $hostName,
@@ -39,7 +43,9 @@ class PerfdataRequest
         string $duration,
         bool $isHostCheck,
         array $includeMetrics = [],
-        array $excludeMetrics = []
+        array $excludeMetrics = [],
+        ?int $startTimestamp = null,
+        ?int $endTimestamp = null
     ) {
         $this->hostName = $hostName;
         $this->serviceName = $serviceName;
@@ -48,6 +54,8 @@ class PerfdataRequest
         $this->isHostCheck = $isHostCheck;
         $this->includeMetrics = $includeMetrics;
         $this->excludeMetrics = $excludeMetrics;
+        $this->startTimestamp = $startTimestamp;
+        $this->endTimestamp = $endTimestamp;
     }
 
     public function getHostname(): string
@@ -83,5 +91,20 @@ class PerfdataRequest
     public function getExcludeMetrics(): array
     {
         return $this->excludeMetrics;
+    }
+
+    public function getStartTimestamp(): ?int
+    {
+        return $this->startTimestamp;
+    }
+
+    public function getEndTimestamp(): ?int
+    {
+        return $this->endTimestamp;
+    }
+
+    public function hasExplicitRange(): bool
+    {
+        return $this->startTimestamp !== null && $this->endTimestamp !== null;
     }
 }

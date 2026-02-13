@@ -14,6 +14,8 @@ use ipl\Html\ValidHtml;
 use ipl\I18n\Translation;
 use ipl\Web\Url;
 use ipl\Web\Widget\Icon;
+use DateTimeImmutable;
+use Throwable;
 
 /**
  * PerfdataChart contains common functionality used for rendering the performance data charts.
@@ -22,6 +24,12 @@ use ipl\Web\Widget\Icon;
 trait PerfdataChart
 {
     use Translation;
+
+    private const RANGE_MODE_URL_PARAM = 'perfdatagraphs.mode';
+    private const RANGE_MODE_CUSTOM = 'custom';
+    private const RANGE_DURATION_URL_PARAM = 'perfdatagraphs.duration';
+    private const RANGE_FROM_URL_PARAM = 'perfdatagraphs.from';
+    private const RANGE_TO_URL_PARAM = 'perfdatagraphs.to';
 
     /**
      * generateID generate a unique and safe ID for each chart.
@@ -34,6 +42,74 @@ trait PerfdataChart
     {
         // Since there might be whatever in the names.
         return rtrim(base64_encode(sprintf('%s-%s-%s', $hostName, $serviceName, $checkCommandName)), '=');
+    }
+
+    private function parseDateParam(?string $value, int $hour, int $minute, int $second): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        if ($date === false) {
+            return null;
+        }
+
+        return $date->setTime($hour, $minute, $second)->getTimestamp();
+    }
+
+    private function durationForTimestamp(int $from): string
+    {
+        $seconds = max(1, time() - $from);
+        $days = max(1, (int) ceil($seconds / 86400));
+
+        return sprintf('P%dD', $days);
+    }
+
+    private function resolveTimeRange(array $config): array
+    {
+        $requestUrl = Url::fromRequest();
+        $duration = $config['default_timerange'];
+        $rangeFrom = null;
+        $rangeTo = null;
+
+        if ($requestUrl->hasParam(self::RANGE_DURATION_URL_PARAM)) {
+            $duration = $requestUrl->getParam(self::RANGE_DURATION_URL_PARAM);
+        }
+
+        if (($requestUrl->getParam(self::RANGE_MODE_URL_PARAM) ?? '') !== self::RANGE_MODE_CUSTOM) {
+            return [
+                'duration' => $duration,
+                'rangeFrom' => $rangeFrom,
+                'rangeTo' => $rangeTo,
+            ];
+        }
+
+        $rangeFrom = $this->parseDateParam($requestUrl->getParam(self::RANGE_FROM_URL_PARAM), 0, 0, 0);
+        $rangeTo = $this->parseDateParam($requestUrl->getParam(self::RANGE_TO_URL_PARAM), 23, 59, 59);
+
+        if ($rangeFrom === null || $rangeTo === null || $rangeFrom > $rangeTo) {
+            Logger::warning('Invalid custom timerange requested, falling back to duration');
+            return [
+                'duration' => $duration,
+                'rangeFrom' => null,
+                'rangeTo' => null,
+            ];
+        }
+
+        // Keep compatibility with backends that still use only duration.
+        $duration = $this->durationForTimestamp($rangeFrom);
+
+        return [
+            'duration' => $duration,
+            'rangeFrom' => $rangeFrom,
+            'rangeTo' => $rangeTo,
+        ];
     }
 
     /**
@@ -99,19 +175,17 @@ trait PerfdataChart
         // Load the module's configuration.
         $config = ModuleConfig::getConfigWithDefaults();
 
-        $duration = $config['default_timerange'];
-
-        // When there is a parameter for the duration we use that instead.
-        if (Url::fromRequest()->hasParam('perfdatagraphs.duration')) {
-            $duration = Url::fromRequest()->getParam('perfdatagraphs.duration');
-        }
+        $timerange = $this->resolveTimeRange($config);
+        $duration = $timerange['duration'];
+        $rangeFrom = $timerange['rangeFrom'];
+        $rangeTo = $timerange['rangeTo'];
 
         $source = new PerfdataSource($config);
 
         $cacheDurationInSeconds = $config['cache_lifetime'];
         $h = $isHostCheck ? 'true': 'false';
         // base64 since there can be whatever in the names
-        $cacheKey = base64_encode($hostName . $serviceName . $checkCommandName . $duration . $h);
+        $cacheKey = base64_encode($hostName . $serviceName . $checkCommandName . $duration . $rangeFrom . $rangeTo . $h);
 
         Benchmark::measure('Rendering performance data elements');
 
@@ -122,7 +196,15 @@ trait PerfdataChart
 
         // If not, fetch the perfdata for a given object via the hook.
         if (!$datasets) {
-            $perfdata = $source->fetchDataViaHook($hostName, $serviceName, $checkCommandName, $duration, $isHostCheck);
+            $perfdata = $source->fetchDataViaHook(
+                $hostName,
+                $serviceName,
+                $checkCommandName,
+                $duration,
+                $isHostCheck,
+                $rangeFrom,
+                $rangeTo
+            );
             $msg = null;
 
             // Error handling, if this gets too long, we could move this to a method.
@@ -163,6 +245,8 @@ trait PerfdataChart
                 'class' => 'perfdatagraphs-line-chart',
                 'id' => $elemID . '_' . $title,
                 'data-perfdata' => $data,
+                'data-range-from' => $rangeFrom,
+                'data-range-to' => $rangeTo,
             ]);
 
             $charts->add($chart);

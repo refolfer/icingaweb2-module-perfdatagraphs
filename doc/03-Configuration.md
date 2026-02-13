@@ -31,6 +31,15 @@ Custom timeranges can be defined by creating a `/etc/icingaweb2/modules/perfdata
 **Note:** A higher timerange (e.g. many years) will load a lot of data from the backend.
 This might cause out-of-memory errors. It is recommended to use the default timeranges.
 
+By default, quick actions include a `Year` button (`P1Y`) and a custom date range selector (`From`/`To`).
+The custom date range selector sends:
+
+- `perfdatagraphs.mode=custom`
+- `perfdatagraphs.from=YYYY-MM-DD`
+- `perfdatagraphs.to=YYYY-MM-DD`
+
+For backend compatibility, the module still computes and sends a duration, and also exposes explicit range timestamps via `PerfdataRequest`.
+
 ```ini
 ;; The key needs to be an ISO8601 duration
 [PT24H]

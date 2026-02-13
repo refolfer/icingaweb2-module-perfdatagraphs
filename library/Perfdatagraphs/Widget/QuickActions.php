@@ -17,6 +17,12 @@ class QuickActions extends BaseHtmlElement
 {
     use Translation;
 
+    protected const RANGE_MODE_URL_PARAM = 'perfdatagraphs.mode';
+    protected const RANGE_MODE_DURATION = 'duration';
+    protected const RANGE_MODE_CUSTOM = 'custom';
+    protected const RANGE_FROM_URL_PARAM = 'perfdatagraphs.from';
+    protected const RANGE_TO_URL_PARAM = 'perfdatagraphs.to';
+
     protected $timeranges = [];
 
     protected $tag = 'ul';
@@ -43,6 +49,13 @@ class QuickActions extends BaseHtmlElement
         if (count($configuredRanges) > 1) {
             $this->timeranges = $configuredRanges;
         }
+    }
+
+    protected function getDateInputValue(string $param): string
+    {
+        $value = $this->baseURL->getParam($param);
+
+        return is_string($value) ? $value : '';
     }
 
     /**
@@ -96,7 +109,12 @@ class QuickActions extends BaseHtmlElement
                 "display_name" => $this->translate("Month"),
                 "href_title" => $this->translate("Show performance data for the last month"),
                 "href_icon" => "calendar",
-            ]
+            ],
+            'P1Y' => [
+                "display_name" => $this->translate("Year"),
+                "href_title" => $this->translate("Show performance data for the last year"),
+                "href_icon" => "calendar",
+            ],
         ];
     }
 
@@ -109,7 +127,10 @@ class QuickActions extends BaseHtmlElement
             $elem = Html::tag(
                 'a',
                 [
-                    'href' => $this->baseURL->overwriteParams([$this->rangeURLParam => $timerange])->getAbsoluteUrl(),
+                    'href' => $this->baseURL->overwriteParams([
+                        self::RANGE_MODE_URL_PARAM => self::RANGE_MODE_DURATION,
+                        $this->rangeURLParam => $timerange,
+                    ])->getAbsoluteUrl(),
                     'class' => 'action-link',
                     'title' => $this->translate($details['href_title']),
                 ],
@@ -118,5 +139,42 @@ class QuickActions extends BaseHtmlElement
 
             $this->add(Html::tag('li', $elem));
         }
+
+        $customRange = Html::tag('form', [
+            'class' => 'quick-actions-custom-range',
+            'method' => 'GET',
+            'action' => $this->baseURL->getAbsoluteUrl(),
+        ], [
+            Html::tag('input', [
+                'type' => 'hidden',
+                'name' => self::RANGE_MODE_URL_PARAM,
+                'value' => self::RANGE_MODE_CUSTOM,
+            ]),
+            Html::tag('label', ['class' => 'sr-only', 'for' => 'perfdatagraphs-from'], $this->translate('From')),
+            Html::tag('input', [
+                'id' => 'perfdatagraphs-from',
+                'name' => self::RANGE_FROM_URL_PARAM,
+                'type' => 'date',
+                'value' => $this->getDateInputValue(self::RANGE_FROM_URL_PARAM),
+                'required' => true,
+                'title' => $this->translate('Start date'),
+            ]),
+            Html::tag('label', ['class' => 'sr-only', 'for' => 'perfdatagraphs-to'], $this->translate('To')),
+            Html::tag('input', [
+                'id' => 'perfdatagraphs-to',
+                'name' => self::RANGE_TO_URL_PARAM,
+                'type' => 'date',
+                'value' => $this->getDateInputValue(self::RANGE_TO_URL_PARAM),
+                'required' => true,
+                'title' => $this->translate('End date'),
+            ]),
+            Html::tag('button', [
+                'type' => 'submit',
+                'class' => 'action-link',
+                'title' => $this->translate('Show performance data for a custom date range'),
+            ], [new Icon('calendar'), $this->translate('Range')]),
+        ]);
+
+        $this->add(Html::tag('li', $customRange));
     }
 }

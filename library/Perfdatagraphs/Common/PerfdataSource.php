@@ -88,10 +88,20 @@ class PerfdataSource
      * @param string $checkcommand Name of the checkcommand
      * @param string $duration Duration for which to fetch the data
      * @param bool $isHostCheck Is this a Host check
+     * @param int|null $startTimestamp explicit range start timestamp
+     * @param int|null $endTimestamp explicit range end timestamp
      *
      * @return PerfdataResponse
      */
-    public function fetchDataViaHook(string $host, string $service, string $checkcommand, string $duration, bool $isHostCheck): PerfdataResponse
+    public function fetchDataViaHook(
+        string $host,
+        string $service,
+        string $checkcommand,
+        string $duration,
+        bool $isHostCheck,
+        ?int $startTimestamp = null,
+        ?int $endTimestamp = null
+    ): PerfdataResponse
     {
         $response = new PerfdataResponse();
 
@@ -143,7 +153,17 @@ class PerfdataSource
         }
 
         // Create a new PerfdataRequest with the given parameters and custom variables
-        $request = new PerfdataRequest($host, $service, $checkcommand, $duration, $isHostCheck, $metricsToInclude, $metricsToExclude);
+        $request = new PerfdataRequest(
+            $host,
+            $service,
+            $checkcommand,
+            $duration,
+            $isHostCheck,
+            $metricsToInclude,
+            $metricsToExclude,
+            $startTimestamp,
+            $endTimestamp
+        );
 
         // Try to fetch the data with the hook.
         try {

@@ -53,6 +53,8 @@ The `PerfdataRequest` contains the following data:
 * `array $includeMetrics` a list of metrics that are requested, if not set all available metrics should be returned
 * `array $excludeMetrics` a list of metrics should be excluded from the results, if not set no metrics should be excluded
 * `string $duration` duration for which to fetch the data for in PHP's [DateInterval](https://www.php.net/manual/en/class.dateinterval.php) format (e.g. PT12H, P1D, P1Y)
+* `?int $startTimestamp` explicit range start in UNIX epoch seconds, optional
+* `?int $endTimestamp` explicit range end in UNIX epoch seconds, optional
 
 ISO8601 durations are used because:
 
@@ -61,6 +63,9 @@ ISO8601 durations are used because:
 3. each backend has different requirements for the time range format, ISO8601 durations provide common ground.
 
 The duration is used to calculate the time range that the user requested. The current timestamp as a starting point is implicit.
+
+When users select a custom date range (`From`/`To` in quick actions), backends can prefer the explicit timestamps.
+If not used, the duration remains available for backward compatibility.
 
 ### PerfdataResponse
 

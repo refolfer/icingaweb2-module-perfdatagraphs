@@ -242,6 +242,10 @@
                     this.icinga.logger.error('perfdatagraphs', 'failed to parse dataset payload', e);
                     continue;
                 }
+                const rangeFromAttr = elem.getAttribute('data-range-from');
+                const rangeToAttr = elem.getAttribute('data-range-to');
+                const rangeFrom = rangeFromAttr === null || rangeFromAttr === '' ? null : parseInt(rangeFromAttr, 10);
+                const rangeTo = rangeToAttr === null || rangeToAttr === '' ? null : parseInt(rangeToAttr, 10);
 
                 // The size can vary from chart to chart for example when
                 // there are two contains on the page.
@@ -341,6 +345,8 @@
                 // If a selection is stored we restore it.
                 if (this.currentSelect !== null) {
                     u.setScale('x', this.currentSelect);
+                } else if (Number.isFinite(rangeFrom) && Number.isFinite(rangeTo)) {
+                    u.setScale('x', { min: rangeFrom, max: rangeTo });
                 }
                 // If a cursor is stored we restore it.
                 if (this.currentCursor !== null) {
