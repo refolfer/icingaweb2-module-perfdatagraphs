@@ -264,7 +264,7 @@
                 let formatYFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
                 // Override the default uplot callback so that smaller values are
                 // shown in the hover and not rounded.
-                let formatLegendFunction = (u, rawValue) => rawValue == null ? '' : rawValue;
+                let formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatNumber(rawValue);
 
                 // We change the format function based on the unit of the dataset
                 // This can be extend in the future:
@@ -274,15 +274,15 @@
                 switch (dataset.unit) {
                 case 'bytes':
                     formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
-                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + rawValue + ')';
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + this.formatNumber(rawValue) + ')';
                     break;
                 case 'seconds':
                     formatYFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
-                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatTimeSeconds(rawValue) + ' (' + rawValue + ')';
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatTimeSeconds(rawValue) + ' (' + this.formatNumber(rawValue) + ')';
                     break;
                 case 'percentage':
                     formatYFunction = (u, vals, space) => vals.map(v => this.formatPercentage(v));
-                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatPercentage(rawValue) + ' (' + rawValue + ')';
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatPercentage(rawValue) + ' (' + this.formatNumber(rawValue) + ')';
                     break;
                 }
 
@@ -444,14 +444,14 @@
         formatNumber(n, suffix)
         {
             if (n == 0) {
-                return 0;
+                return '0.00';
             }
 
-            let str = n.toString();
+            let str = Number.isFinite(n) ? n.toFixed(2) : n.toString();
 
             // If the output would be too long we change to exponential
             if (str.length >= 20) {
-                str = n.toExponential();
+                str = Number.isFinite(n) ? n.toExponential(2) : n.toString();
             }
 
             // Add suffix if it is defined
