@@ -431,12 +431,15 @@
                             : isCrit
                             ? criticalColor
                             : (dataset.stroke || this.getAutoColor(metricColorIdx++));
+                        const fill = isWarn || isCrit
+                            ? false
+                            : (dataset.fill || this.ensureRgba(stroke || valueColor, 0.22));
                         const defaultShow = isWarn || isCrit ? (dataset.show_thresholds ?? true) : true;
 
                         series.push({
                             label: label,
                             stroke: stroke || valueColor,
-                            fill: false,
+                            fill: fill,
                             defaultShow: defaultShow,
                             values: this.alignSeriesValues(timestamps, datasetTimestamps, seriesValues),
                         });
@@ -609,25 +612,56 @@
         }
 
         /**
-         * Translate a given rgb() string into rgba().
+         * Translate a given CSS color to the same color with alpha.
          * Used for the fill of the chart.
          */
         ensureRgba(color, alpha=1) {
-            // If already in rgba just return.
-            if (color.startsWith('rgba')) {
+            if (typeof color !== 'string') {
                 return color;
+            }
+
+            // If already in rgba() update the alpha.
+            const rgbaMatch = color.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)$/);
+            if (rgbaMatch) {
+                const [_, r, g, b] = rgbaMatch;
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
 
             // Try to match the rgb format and return with alpha.
             const rgbMatch = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-            if (!rgbMatch) {
-                // If we match nothing return what was given just to be safe.
-                return color;
+            if (rgbMatch) {
+                const [_, r, g, b] = rgbMatch;
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
 
-            // Add the given alpha.
-            const [_, r, g, b] = rgbMatch;
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            // hsl(H S% L%) syntax used by auto-colors.
+            const hslMatch = color.match(/^hsl\(([^)]+)\)$/);
+            if (hslMatch) {
+                return `hsl(${hslMatch[1]} / ${alpha})`;
+            }
+
+            // hsla(H, S, L, A) syntax.
+            const hslaMatch = color.match(/^hsla\(([^,]+),\s*([^,]+),\s*([^,]+),\s*[\d.]+\)$/);
+            if (hslaMatch) {
+                const [_, h, s, l] = hslaMatch;
+                return `hsla(${h}, ${s}, ${l}, ${alpha})`;
+            }
+
+            // #RRGGBB or #RGB
+            if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) {
+                let hex = color.slice(1);
+                if (hex.length === 3) {
+                    hex = hex.split('').map(c => c + c).join('');
+                }
+
+                const r = parseInt(hex.slice(0, 2), 16);
+                const g = parseInt(hex.slice(2, 4), 16);
+                const b = parseInt(hex.slice(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            // If we match nothing return what was given just to be safe.
+            return color;
         }
 
         /**
