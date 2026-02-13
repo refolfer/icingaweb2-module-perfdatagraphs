@@ -7,6 +7,8 @@
     // Names to identify the warning/critical series
     const CHART_WARN_SERIESNAME = 'warning';
     const CHART_CRIT_SERIESNAME = 'critical';
+    // Golden angle in degrees gives distinct colors for sequential series.
+    const AUTO_COLOR_GOLDEN_ANGLE = 137.508;
 
     class Perfdatagraphs extends Icinga.EventListener {
         // plots contains the chart objects with the element ID where it is rendered as key.
@@ -232,6 +234,8 @@
 
             this.icinga.logger.debug('perfdatagraphs', 'start renderCharts');
 
+            const entriesByContainer = new Map();
+
             for (let elem of lineCharts) {
                 this.icinga.logger.debug('perfdatagraphs', 'rendering for', elem);
 
@@ -242,28 +246,145 @@
                     this.icinga.logger.error('perfdatagraphs', 'failed to parse dataset payload', e);
                     continue;
                 }
-                const rangeFromAttr = elem.getAttribute('data-range-from');
-                const rangeToAttr = elem.getAttribute('data-range-to');
-                const rangeFrom = rangeFromAttr === null || rangeFromAttr === '' ? null : parseInt(rangeFromAttr, 10);
-                const rangeTo = rangeToAttr === null || rangeToAttr === '' ? null : parseInt(rangeToAttr, 10);
 
-                // The size can vary from chart to chart for example when
-                // there are two contains on the page.
-                let opts = {...baseOpts, ...this.getChartSize(elem.offsetWidth)};
-
-                // Add each element to the resize observer so that we can
-                // resize the chart when its container changes
-                this.resizeObserver.observe(elem);
-
-                // Reset the existing canvas elements for the new rendering
-                elem.replaceChildren();
-
-                // Create a new uplot chart for each performance dataset
-                dataset.timestamps = this.ensureArray(dataset.timestamps ?? []);
                 if (!Array.isArray(dataset.series)) {
                     this.icinga.logger.error('perfdatagraphs', 'dataset has no series array', dataset);
                     continue;
                 }
+
+                const rangeFromAttr = elem.getAttribute('data-range-from');
+                const rangeToAttr = elem.getAttribute('data-range-to');
+                const rangeFrom = rangeFromAttr === null || rangeFromAttr === '' ? null : parseInt(rangeFromAttr, 10);
+                const rangeTo = rangeToAttr === null || rangeToAttr === '' ? null : parseInt(rangeToAttr, 10);
+                const container = elem.parentElement;
+                const entry = {
+                    elem: elem,
+                    dataset: dataset,
+                    rangeFrom: rangeFrom,
+                    rangeTo: rangeTo,
+                };
+
+                if (!entriesByContainer.has(container)) {
+                    entriesByContainer.set(container, []);
+                }
+
+                entriesByContainer.get(container).push(entry);
+            }
+
+            for (let [container, entries] of entriesByContainer) {
+                const groupedCharts = this.groupDatasetsForCharts(entries, valueColor, warningColor, criticalColor);
+                const containerElements = entries.map(entry => entry.elem);
+
+                this.setChartsControlVisibility(container, groupedCharts.length);
+
+                for (let chartIdx = 0; chartIdx < groupedCharts.length; chartIdx++) {
+                    const chart = groupedCharts[chartIdx];
+                    const elem = containerElements[chartIdx];
+                    if (elem === undefined) {
+                        break;
+                    }
+
+                    // The size can vary from chart to chart for example when
+                    // there are two containers on the page.
+                    let opts = {...baseOpts, ...this.getChartSize(elem.offsetWidth)};
+                    opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, chart.formatYFunction)];
+                    opts.title = chart.title;
+                    opts.title += chart.unit ? ' | ' + chart.unit : '';
+
+                    // Add each element to the resize observer so that we can
+                    // resize the chart when its container changes
+                    this.resizeObserver.observe(elem);
+
+                    // Reset the existing canvas elements for the new rendering
+                    elem.style.display = '';
+                    elem.replaceChildren();
+
+                    let u = new uPlot(opts, [], elem);
+                    // Where we store the finished data for the chart
+                    let d = [chart.timestamps];
+
+                    for (let idx = 0; idx < chart.series.length; idx++) {
+                        const series = chart.series[idx];
+                        // See if there are series options from the last autorefresh
+                        // if so we use them, otherwise the default.
+                        const show = this.currentSeriesShow[idx + 1] ?? series.defaultShow;
+
+                        u.addSeries({
+                            label: series.label,
+                            stroke: series.stroke,
+                            fill: series.fill,
+                            show: show,
+                            gaps: this.timeseriesThresholdGapFunction,
+                            value: chart.formatLegendFunction,
+                        }, idx + 1);
+
+                        // Add this to the final data for the chart
+                        d.push(series.values);
+                    }
+
+                    // Add the data to the chart
+                    u.setData(d);
+
+                    // If a selection is stored we restore it.
+                    if (this.currentSelect !== null) {
+                        u.setScale('x', this.currentSelect);
+                    } else if (Number.isFinite(chart.rangeFrom) && Number.isFinite(chart.rangeTo)) {
+                        u.setScale('x', { min: chart.rangeFrom, max: chart.rangeTo });
+                    }
+                    // If a cursor is stored we restore it.
+                    if (this.currentCursor !== null) {
+                        u.setCursor(this.currentCursor);
+                    }
+
+                    // Add the chart to the map which we use for the resize observer
+                    this.plots.set(elem, u);
+                }
+
+                for (let idx = groupedCharts.length; idx < containerElements.length; idx++) {
+                    containerElements[idx].replaceChildren();
+                    containerElements[idx].style.display = 'none';
+                }
+            }
+
+            this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+        }
+
+        /**
+         * groupDatasetsForCharts groups all datasets by unit and aligns their
+         * series to a shared timestamps array.
+         */
+        groupDatasetsForCharts(entries, valueColor, warningColor, criticalColor)
+        {
+            const groupedByUnit = new Map();
+
+            for (let entry of entries) {
+                const dataset = entry.dataset;
+                dataset.timestamps = this.ensureArray(dataset.timestamps ?? []);
+                const unit = dataset.unit ?? '';
+                const key = unit === '' ? '__no_unit__' : unit;
+
+                if (!groupedByUnit.has(key)) {
+                    groupedByUnit.set(key, {
+                        unit: unit,
+                        entries: [],
+                        rangeFrom: entry.rangeFrom,
+                        rangeTo: entry.rangeTo,
+                    });
+                }
+
+                const group = groupedByUnit.get(key);
+                group.entries.push(entry);
+                if (!Number.isFinite(group.rangeFrom) && Number.isFinite(entry.rangeFrom)) {
+                    group.rangeFrom = entry.rangeFrom;
+                }
+                if (!Number.isFinite(group.rangeTo) && Number.isFinite(entry.rangeTo)) {
+                    group.rangeTo = entry.rangeTo;
+                }
+            }
+
+            const groupedCharts = [];
+
+            for (let group of groupedByUnit.values()) {
                 // Base format function for the y-axis
                 let formatYFunction = (u, vals, space) => vals.map(v => this.formatNumber(v));
                 // Override the default uplot callback so that smaller values are
@@ -271,11 +392,11 @@
                 let formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatNumber(rawValue);
 
                 // We change the format function based on the unit of the dataset
-                // This can be extend in the future:
+                // This can be extended in the future:
                 // - Create a new format function that returns a formated string for the given value
                 // - Add a new case with the function here
                 // - Update the documentation to include the new format option
-                switch (dataset.unit) {
+                switch (group.unit) {
                 case 'bytes':
                     formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
                     formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + this.formatNumber(rawValue) + ')';
@@ -290,74 +411,140 @@
                     break;
                 }
 
-                opts.axes = [this.getXProperty(axesColor), this.getYProperty(axesColor, formatYFunction)];
+                const title = group.entries.length > 1 ? 'Grouped Metrics' : (group.entries[0].dataset.title ?? 'Metrics');
+                const timestamps = this.buildSharedTimestamps(group.entries);
+                const series = [];
+                let metricColorIdx = 0;
 
-                // Add a new empty plot with a title for the dataset
-                opts.title = dataset.title;
-                opts.title += dataset.unit ? ' | ' + dataset.unit : '';
+                for (let entry of group.entries) {
+                    const dataset = entry.dataset;
+                    const datasetTimestamps = this.ensureArray(dataset.timestamps ?? []);
 
-                let u = new uPlot(opts, [], elem);
-                // Where we store the finished data for the chart
-                let d = [dataset.timestamps];
+                    for (let rawSeries of dataset.series) {
+                        const seriesValues = this.ensureArray(rawSeries.values ?? []);
+                        const name = rawSeries.name ?? '';
+                        const isWarn = name === CHART_WARN_SERIESNAME;
+                        const isCrit = name === CHART_CRIT_SERIESNAME;
+                        const label = this.getSeriesLabel(dataset.title ?? '', name, group.entries.length);
+                        const stroke = isWarn
+                            ? warningColor
+                            : isCrit
+                            ? criticalColor
+                            : (dataset.stroke || this.getAutoColor(metricColorIdx++));
+                        const defaultShow = isWarn || isCrit ? (dataset.show_thresholds ?? true) : true;
 
-                // Create the data for the plot and add the series
-                // Using a 'classic' for loop since we need the index
-                for (let idx = 0; idx < dataset.series.length; idx++) {
-                    // // The series we are going to add (e.g. values, warn, crit, etc.)
-                    let set = dataset.series[idx].values;
-                    set = this.ensureArray(set ?? []);
-
-                    // We show all series by default unless warn/crit have show_thresholds to false
-                    const defaultShow = dataset.series[idx].name === CHART_WARN_SERIESNAME || dataset.series[idx].name === CHART_CRIT_SERIESNAME
-                          ? dataset.show_thresholds ?? true
-                          : true;
-                    // See if there are series options from the last autorefresh
-                    // if so we use them, otherwise the default.
-                    let show = this.currentSeriesShow[idx + 1] ?? defaultShow;
-                    // Get the style either from the dataset or from CSS
-                    let stroke = dataset.stroke || valueColor;
-                    let fill = dataset.fill || this.ensureRgba(valueColor, 0.3);
-
-                    // Add a new series to the plot. Need adjust the index, since 0 is the timestamps
-                    if (dataset.series[idx].name === CHART_WARN_SERIESNAME) {
-                        stroke = warningColor;
-                        fill = false;
+                        series.push({
+                            label: label,
+                            stroke: stroke || valueColor,
+                            fill: false,
+                            defaultShow: defaultShow,
+                            values: this.alignSeriesValues(timestamps, datasetTimestamps, seriesValues),
+                        });
                     }
-                    if (dataset.series[idx].name === CHART_CRIT_SERIESNAME) {
-                        stroke = criticalColor;
-                        fill = false;
-                    }
-
-                    u.addSeries({
-                        label: dataset.series[idx].name,
-                        stroke: stroke,
-                        fill: fill,
-                        show: show,
-                        gaps: this.timeseriesThresholdGapFunction,
-                        value: formatLegendFunction,
-                    }, idx+1);
-                    // Add this to the final data for the chart
-                    d.push(set);
-                }
-                // Add the data to the chart
-                u.setData(d);
-
-                // If a selection is stored we restore it.
-                if (this.currentSelect !== null) {
-                    u.setScale('x', this.currentSelect);
-                } else if (Number.isFinite(rangeFrom) && Number.isFinite(rangeTo)) {
-                    u.setScale('x', { min: rangeFrom, max: rangeTo });
-                }
-                // If a cursor is stored we restore it.
-                if (this.currentCursor !== null) {
-                    u.setCursor(this.currentCursor);
                 }
 
-                // Add the chart to the map which we use for the resize observer
-                this.plots.set(elem, u);
+                groupedCharts.push({
+                    title: title,
+                    unit: group.unit,
+                    rangeFrom: group.rangeFrom,
+                    rangeTo: group.rangeTo,
+                    timestamps: timestamps,
+                    series: series,
+                    formatYFunction: formatYFunction,
+                    formatLegendFunction: formatLegendFunction,
+                });
             }
 
-            this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+            return groupedCharts;
+        }
+
+        /**
+         * buildSharedTimestamps returns sorted unique timestamps for all entries.
+         */
+        buildSharedTimestamps(entries)
+        {
+            const timestampsSet = new Set();
+
+            for (let entry of entries) {
+                const timestamps = this.ensureArray(entry.dataset.timestamps ?? []);
+                for (let ts of timestamps) {
+                    if (Number.isFinite(ts)) {
+                        timestampsSet.add(ts);
+                    }
+                }
+            }
+
+            return Array.from(timestampsSet).sort((a, b) => a - b);
+        }
+
+        /**
+         * alignSeriesValues aligns values to a given shared timestamps array.
+         */
+        alignSeriesValues(sharedTimestamps, seriesTimestamps, values)
+        {
+            const valueByTs = new Map();
+            const maxLen = Math.min(seriesTimestamps.length, values.length);
+
+            for (let idx = 0; idx < maxLen; idx++) {
+                const ts = seriesTimestamps[idx];
+                if (Number.isFinite(ts)) {
+                    valueByTs.set(ts, values[idx] ?? null);
+                }
+            }
+
+            return sharedTimestamps.map(ts => valueByTs.get(ts) ?? null);
+        }
+
+        /**
+         * getSeriesLabel returns user-facing label for grouped charts.
+         */
+        getSeriesLabel(datasetTitle, seriesName, groupedDatasetCount)
+        {
+            if (groupedDatasetCount <= 1) {
+                return seriesName;
+            }
+
+            if (seriesName === CHART_WARN_SERIESNAME || seriesName === CHART_CRIT_SERIESNAME) {
+                return `${datasetTitle} ${seriesName}`;
+            }
+
+            if (seriesName === 'value' || seriesName === '') {
+                return datasetTitle;
+            }
+
+            return `${datasetTitle} ${seriesName}`;
+        }
+
+        /**
+         * getAutoColor returns deterministic per-series color.
+         */
+        getAutoColor(idx)
+        {
+            const hue = Math.round((idx * AUTO_COLOR_GOLDEN_ANGLE) % 360);
+            return `hsl(${hue} 70% 45%)`;
+        }
+
+        /**
+         * setChartsControlVisibility hides chart controls if grouping collapsed
+         * all charts into a single plot.
+         */
+        setChartsControlVisibility(chartContainer, chartCount)
+        {
+            if (chartContainer == null) {
+                return;
+            }
+
+            const perfdataRoot = chartContainer.parentElement;
+            if (perfdataRoot == null) {
+                return;
+            }
+
+            const control = perfdataRoot.querySelector('.perfdata-charts-container-control');
+            if (control == null) {
+                return;
+            }
+
+            control.style.display = chartCount > 1 ? '' : 'none';
         }
 
         /**
