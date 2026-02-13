@@ -625,7 +625,63 @@
                 };
             }
 
+            const looksLikeStorageMetric = group.entries.some(entry => {
+                const title = (entry.dataset.title ?? '').toLowerCase().trim();
+                if (/^[a-z]:$/.test(title)) {
+                    return true;
+                }
+
+                return /(disk|drive|storage|memory|mem|ram|swap|cache|buffer|volume|filesystem|fs)/.test(title);
+            });
+
+            if (looksLikeStorageMetric || this.looksLikeBytesByMagnitude(group)) {
+                return {
+                    type: 'bytes',
+                    factor: 1,
+                    base: 1000,
+                    rateSuffix: '',
+                };
+            }
+
             return { type: 'default' };
+        }
+
+        /**
+         * looksLikeBytesByMagnitude applies a conservative heuristic for
+         * untyped metrics: very large values are likely byte-sized counters.
+         */
+        looksLikeBytesByMagnitude(group)
+        {
+            const values = [];
+
+            for (let entry of group.entries) {
+                const series = entry.dataset.series ?? [];
+                for (let s of series) {
+                    const name = (s.name ?? '').toLowerCase();
+                    if (name === CHART_WARN_SERIESNAME || name === CHART_CRIT_SERIESNAME) {
+                        continue;
+                    }
+
+                    const seriesValues = this.ensureArray(s.values ?? []);
+                    for (let v of seriesValues) {
+                        if (Number.isFinite(v) && v !== 0) {
+                            values.push(Math.abs(v));
+                        }
+                    }
+                }
+            }
+
+            if (values.length < 3) {
+                return false;
+            }
+
+            values.sort((a, b) => a - b);
+            const p50 = values[Math.floor(values.length * 0.5)];
+            const p90 = values[Math.floor(values.length * 0.9)];
+
+            // Typical byte-sized values for memory/disk datasets are in the
+            // millions and above; this avoids catching normal percentages/timers.
+            return p50 >= 1e6 && p90 >= 1e7;
         }
 
         /**
