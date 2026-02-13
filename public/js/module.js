@@ -396,10 +396,11 @@
                 // - Create a new format function that returns a formated string for the given value
                 // - Add a new case with the function here
                 // - Update the documentation to include the new format option
-                switch (group.unit) {
+                const unitInfo = this.detectUnitType(group);
+                switch (unitInfo.type) {
                 case 'bytes':
-                    formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesSI(v));
-                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesSI(rawValue) + ' (' + this.formatNumber(rawValue) + ')';
+                    formatYFunction = (u, vals, space) => vals.map(v => this.formatBytesHuman(v, unitInfo));
+                    formatLegendFunction = (u, rawValue) => rawValue == null ? '' : this.formatBytesHuman(rawValue, unitInfo) + ' (' + this.formatNumber(rawValue) + ')';
                     break;
                 case 'seconds':
                     formatYFunction = (u, vals, space) => vals.map(v => this.formatTimeSeconds(v));
@@ -548,6 +549,83 @@
             }
 
             control.style.display = chartCount > 1 ? '' : 'none';
+        }
+
+        /**
+         * detectUnitType normalizes unit handling so we can auto-format
+         * bytes and common aliases (e.g. B, MB, MiB, B/s).
+         */
+        detectUnitType(group)
+        {
+            const rawUnit = (group.unit ?? '').trim();
+            const lowerUnit = rawUnit.toLowerCase();
+            const isRate = /\/\s*s$/.test(lowerUnit);
+            const unitNoRate = lowerUnit.replace(/\/\s*s$/, '').trim();
+
+            const byteUnits = {
+                b: {factor: 1, base: 1000},
+                byte: {factor: 1, base: 1000},
+                bytes: {factor: 1, base: 1000},
+                kb: {factor: 1e3, base: 1000},
+                mb: {factor: 1e6, base: 1000},
+                gb: {factor: 1e9, base: 1000},
+                tb: {factor: 1e12, base: 1000},
+                pb: {factor: 1e15, base: 1000},
+                eb: {factor: 1e18, base: 1000},
+                kib: {factor: 1024, base: 1024},
+                mib: {factor: 1024 ** 2, base: 1024},
+                gib: {factor: 1024 ** 3, base: 1024},
+                tib: {factor: 1024 ** 4, base: 1024},
+                pib: {factor: 1024 ** 5, base: 1024},
+                eib: {factor: 1024 ** 6, base: 1024},
+            };
+
+            if (unitNoRate in byteUnits) {
+                const config = byteUnits[unitNoRate];
+                return {
+                    type: 'bytes',
+                    factor: config.factor,
+                    base: config.base,
+                    rateSuffix: isRate ? '/s' : '',
+                };
+            }
+
+            if (unitNoRate === 'seconds' || unitNoRate === 'second' || unitNoRate === 'sec' || unitNoRate === 's') {
+                return { type: 'seconds' };
+            }
+
+            if (
+                unitNoRate === 'percentage'
+                || unitNoRate === 'percent'
+                || unitNoRate === 'pct'
+                || unitNoRate === '%'
+            ) {
+                return { type: 'percentage' };
+            }
+
+            // Fallback: format as bytes when metric names explicitly mention bytes.
+            const mentionsBytes = group.entries.some(entry => {
+                const title = (entry.dataset.title ?? '').toLowerCase();
+                if (title.includes('byte')) {
+                    return true;
+                }
+
+                return (entry.dataset.series ?? []).some(series => {
+                    const name = (series.name ?? '').toLowerCase();
+                    return name.includes('byte');
+                });
+            });
+
+            if (mentionsBytes) {
+                return {
+                    type: 'bytes',
+                    factor: 1,
+                    base: 1000,
+                    rateSuffix: '',
+                };
+            }
+
+            return { type: 'default' };
         }
 
         /**
@@ -753,21 +831,34 @@
         }
 
         /**
-         * formatBytesSI turns a number of bytes into their SI format.
+         * formatBytesHuman turns raw values into a readable bytes format.
+         * The raw value is scaled via unitInfo.factor first.
          */
-        formatBytesSI(n)
+        formatBytesHuman(n, unitInfo = {factor: 1, base: 1000, rateSuffix: ''})
         {
-            if (n === 0) {
-                return "0 bytes";
+            if (!Number.isFinite(n)) {
+                return n.toString();
             }
 
-            const k = 1000;
-            const units = ["bytes", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+            if (n === 0) {
+                return `0 B${unitInfo.rateSuffix ?? ''}`;
+            }
 
-            const i = Math.floor(Math.log(Math.abs(n)) / Math.log(k));
-            const value = (n / Math.pow(k, i)).toFixed(2);
+            const factor = Number.isFinite(unitInfo.factor) ? unitInfo.factor : 1;
+            const base = unitInfo.base === 1024 ? 1024 : 1000;
+            const units = base === 1024
+                ? ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
+                : ["B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+            const suffix = unitInfo.rateSuffix ?? '';
+            const bytes = n * factor;
+            const abs = Math.abs(bytes);
+            const maxIdx = units.length - 1;
+            let idx = abs > 0 ? Math.floor(Math.log(abs) / Math.log(base)) : 0;
 
-            return `${value} ${units[i]}`;
+            idx = Math.max(0, Math.min(idx, maxIdx));
+            const value = (bytes / Math.pow(base, idx)).toFixed(2);
+
+            return `${value} ${units[idx]}${suffix}`;
         }
 
         /**
