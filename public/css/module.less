@@ -63,3 +63,42 @@ ul.quick-actions {
         outline: none;
     }
 }
+
+/*
+Render values below charts as a proper table instead of inline floating groups.
+uPlot marks legend with .u-inline by default, so we override that behavior
+for this module's chart container only.
+*/
+.perfdatagraphs-line-chart {
+    .u-legend.u-inline {
+        display: table;
+        width: 100%;
+        margin-top: .35em;
+        border-collapse: collapse;
+    }
+
+    .u-legend.u-inline tr {
+        display: table-row;
+        margin-right: 0;
+    }
+
+    .u-legend.u-inline th,
+    .u-legend.u-inline td {
+        display: table-cell;
+        padding: .2em .4em;
+        vertical-align: middle;
+    }
+
+    .u-legend.u-inline th {
+        text-align: left;
+    }
+
+    .u-legend.u-inline td.u-value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .u-legend .u-marker {
+        margin-right: .4em;
+    }
+}
