@@ -85,7 +85,7 @@
                 // Subtract some pixels to avoid flickering scollbar in Chrome
                 // Maybe there's a better way?
                 width: width - 10,
-                // If you change this, remember to also change the collapsible height.
+                // Collapsed container height is adjusted dynamically after render.
                 height: 200,
             };
         }
@@ -274,6 +274,7 @@
             for (let [container, entries] of entriesByContainer) {
                 const groupedCharts = this.groupDatasetsForCharts(entries, valueColor, warningColor, criticalColor);
                 const containerElements = entries.map(entry => entry.elem);
+                let firstVisibleChartElement = null;
 
                 this.setChartsControlVisibility(container, groupedCharts.length);
 
@@ -338,15 +339,38 @@
 
                     // Add the chart to the map which we use for the resize observer
                     this.plots.set(elem, u);
+
+                    if (firstVisibleChartElement === null) {
+                        firstVisibleChartElement = elem;
+                    }
                 }
 
                 for (let idx = groupedCharts.length; idx < containerElements.length; idx++) {
                     containerElements[idx].replaceChildren();
                     containerElements[idx].style.display = 'none';
                 }
+
+                this.updateCollapsedContainerHeight(container, firstVisibleChartElement);
             }
 
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+        }
+
+        /**
+         * updateCollapsedContainerHeight adjusts the collapsed preview height
+         * so the first chart (including legend table) is fully visible.
+         */
+        updateCollapsedContainerHeight(container, firstVisibleChartElement)
+        {
+            if (container == null || firstVisibleChartElement == null) {
+                return;
+            }
+
+            // Keep the original fallback while allowing taller legends.
+            const baseMinHeight = 275;
+            const requiredHeight = Math.ceil(firstVisibleChartElement.scrollHeight + 12);
+            const minHeight = Math.max(baseMinHeight, requiredHeight);
+            container.style.minHeight = `${minHeight}px`;
         }
 
         /**
