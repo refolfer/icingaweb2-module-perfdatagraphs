@@ -22,6 +22,7 @@ class QuickActions extends BaseHtmlElement
     protected const RANGE_MODE_CUSTOM = 'custom';
     protected const RANGE_FROM_URL_PARAM = 'perfdatagraphs.from';
     protected const RANGE_TO_URL_PARAM = 'perfdatagraphs.to';
+    protected const GROUPED_VIEW_URL_PARAM = 'perfdatagraphs.grouped';
 
     protected $timeranges = [];
 
@@ -56,6 +57,17 @@ class QuickActions extends BaseHtmlElement
         $value = $this->baseURL->getParam($param);
 
         return is_string($value) ? $value : '';
+    }
+
+    protected function isGroupedViewEnabled(): bool
+    {
+        $value = $this->baseURL->getParam(self::GROUPED_VIEW_URL_PARAM);
+
+        if (! is_string($value) || $value === '') {
+            return true;
+        }
+
+        return ! in_array(strtolower($value), ['0', 'false', 'off', 'no'], true);
     }
 
     /**
@@ -176,5 +188,21 @@ class QuickActions extends BaseHtmlElement
         ]);
 
         $this->add(Html::tag('li', $customRange));
+
+        $this->add(Html::tag('li', [
+            'class' => 'quick-actions-group-toggle',
+        ], Html::tag('label', [
+            'for' => 'perfdatagraphs-grouped-toggle',
+        ], [
+            Html::tag('input', [
+                'type' => 'checkbox',
+                'id' => 'perfdatagraphs-grouped-toggle',
+                'class' => 'perfdatagraphs-grouped-toggle',
+                'name' => self::GROUPED_VIEW_URL_PARAM,
+                'value' => '1',
+                'checked' => $this->isGroupedViewEnabled(),
+            ]),
+            $this->translate('Grouped'),
+        ])));
     }
 }

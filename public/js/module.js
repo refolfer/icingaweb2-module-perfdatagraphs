@@ -9,6 +9,7 @@
     const CHART_CRIT_SERIESNAME = 'critical';
     // Golden angle in degrees gives distinct colors for sequential series.
     const AUTO_COLOR_GOLDEN_ANGLE = 137.508;
+    const GROUP_TOGGLE_INPUT_CLASS = '.perfdatagraphs-grouped-toggle';
 
     class Perfdatagraphs extends Icinga.EventListener {
         // plots contains the chart objects with the element ID where it is rendered as key.
@@ -18,6 +19,8 @@
         currentSelect = null;
         currentCursor = null;
         currentSeriesShow = {};
+        groupedToggleInput = null;
+        groupedToggleChangeHandler = null;
 
         constructor(icinga)
         {
@@ -57,12 +60,7 @@
                 _this.currentCursor = null;
             }
 
-            // Remove leftover eventhandlers and uPlot instances
-            _this.plots.forEach((plot, element) => {
-                plot.destroy();
-            });
-            // Then, reset the existing plots map for the new rendering
-            _this.plots = new Map();
+            _this.resetPlots();
 
             // Get the elements we going to render the charts in
             const lineCharts = document.querySelectorAll(CHART_CLASS);
@@ -72,6 +70,7 @@
                 return;
             }
 
+            _this.bindGroupedToggle(lineCharts);
             _this.renderCharts(lineCharts);
         }
 
@@ -272,7 +271,9 @@
             }
 
             for (let [container, entries] of entriesByContainer) {
-                const groupedCharts = this.groupDatasetsForCharts(entries, valueColor, warningColor, criticalColor);
+                const groupedCharts = this.shouldRenderGroupedCharts()
+                    ? this.groupDatasetsForCharts(entries, valueColor, warningColor, criticalColor)
+                    : this.singleDatasetsForCharts(entries, valueColor, warningColor, criticalColor);
                 const containerElements = entries.map(entry => entry.elem);
                 let firstVisibleChartElement = null;
 
@@ -354,6 +355,67 @@
             }
 
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+        }
+
+        /**
+         * bindGroupedToggle attaches change listener to grouped/single switch.
+         */
+        bindGroupedToggle(lineCharts)
+        {
+            const input = document.querySelector(GROUP_TOGGLE_INPUT_CLASS);
+            if (input === null) {
+                return;
+            }
+
+            if (this.groupedToggleInput !== null && this.groupedToggleChangeHandler !== null) {
+                this.groupedToggleInput.removeEventListener('change', this.groupedToggleChangeHandler);
+            }
+
+            this.groupedToggleInput = input;
+            this.groupedToggleChangeHandler = () => {
+                this.currentSelect = null;
+                this.currentCursor = null;
+                this.currentSeriesShow = {};
+
+                const isGrouped = this.groupedToggleInput.checked;
+                const groupedParam = 'perfdatagraphs.grouped';
+                const url = new URL(window.location.href);
+                if (isGrouped) {
+                    url.searchParams.delete(groupedParam);
+                } else {
+                    url.searchParams.set(groupedParam, '0');
+                }
+                window.history.replaceState({}, '', url.toString());
+
+                this.resetPlots();
+                this.renderCharts(lineCharts);
+            };
+
+            this.groupedToggleInput.addEventListener('change', this.groupedToggleChangeHandler);
+        }
+
+        /**
+         * resetPlots destroys existing uPlot instances before re-rendering.
+         */
+        resetPlots()
+        {
+            this.plots.forEach((plot, element) => {
+                plot.destroy();
+            });
+
+            this.plots = new Map();
+        }
+
+        /**
+         * shouldRenderGroupedCharts returns true when grouped charts mode is enabled.
+         */
+        shouldRenderGroupedCharts()
+        {
+            if (this.groupedToggleInput === null) {
+                return true;
+            }
+
+            return this.groupedToggleInput.checked;
         }
 
         /**
@@ -484,6 +546,23 @@
             }
 
             return groupedCharts;
+        }
+
+        /**
+         * singleDatasetsForCharts returns one chart per input dataset.
+         */
+        singleDatasetsForCharts(entries, valueColor, warningColor, criticalColor)
+        {
+            const singleCharts = [];
+
+            for (let entry of entries) {
+                const charts = this.groupDatasetsForCharts([entry], valueColor, warningColor, criticalColor);
+                if (charts.length > 0) {
+                    singleCharts.push(charts[0]);
+                }
+            }
+
+            return singleCharts;
         }
 
         /**
