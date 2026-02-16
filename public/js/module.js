@@ -10,6 +10,8 @@
     // Golden angle in degrees gives distinct colors for sequential series.
     const AUTO_COLOR_GOLDEN_ANGLE = 137.508;
     const GROUP_TOGGLE_INPUT_CLASS = '.perfdatagraphs-grouped-toggle';
+    const GROUPED_PARAM_NAME = 'perfdatagraphs.grouped';
+    const GROUPED_STORAGE_PREFIX = 'perfdatagraphs.grouped.';
 
     class Perfdatagraphs extends Icinga.EventListener {
         // plots contains the chart objects with the element ID where it is rendered as key.
@@ -367,6 +369,9 @@
                 return;
             }
 
+            const initialGrouped = this.resolveInitialGroupedPreference(lineCharts, input.checked);
+            input.checked = initialGrouped;
+
             if (this.groupedToggleInput !== null && this.groupedToggleChangeHandler !== null) {
                 this.groupedToggleInput.removeEventListener('change', this.groupedToggleChangeHandler);
             }
@@ -378,14 +383,14 @@
                 this.currentSeriesShow = {};
 
                 const isGrouped = this.groupedToggleInput.checked;
-                const groupedParam = 'perfdatagraphs.grouped';
                 const url = new URL(window.location.href);
                 if (isGrouped) {
-                    url.searchParams.delete(groupedParam);
+                    url.searchParams.delete(GROUPED_PARAM_NAME);
                 } else {
-                    url.searchParams.set(groupedParam, '0');
+                    url.searchParams.set(GROUPED_PARAM_NAME, '0');
                 }
                 window.history.replaceState({}, '', url.toString());
+                this.storeGroupedPreference(lineCharts, isGrouped);
 
                 this.resetPlots();
                 this.renderCharts(lineCharts);
@@ -416,6 +421,102 @@
             }
 
             return this.groupedToggleInput.checked;
+        }
+
+        /**
+         * resolveInitialGroupedPreference chooses initial grouped state.
+         * Priority: explicit URL param -> localStorage per chart -> fallback value.
+         */
+        resolveInitialGroupedPreference(lineCharts, fallback)
+        {
+            const fromUrl = this.readGroupedFromUrl();
+            if (fromUrl !== null) {
+                this.storeGroupedPreference(lineCharts, fromUrl);
+                return fromUrl;
+            }
+
+            const fromStorage = this.readGroupedFromStorage(lineCharts);
+            if (fromStorage !== null) {
+                return fromStorage;
+            }
+
+            return fallback;
+        }
+
+        /**
+         * readGroupedFromUrl parses explicit grouped mode from URL.
+         */
+        readGroupedFromUrl()
+        {
+            const url = new URL(window.location.href);
+            if (!url.searchParams.has(GROUPED_PARAM_NAME)) {
+                return null;
+            }
+
+            const value = (url.searchParams.get(GROUPED_PARAM_NAME) ?? '').toLowerCase();
+            return !(value === '0' || value === 'false' || value === 'off' || value === 'no');
+        }
+
+        /**
+         * groupedPreferenceStorageKey returns storage key per chart container.
+         */
+        groupedPreferenceStorageKey(lineCharts)
+        {
+            const containerIds = new Set();
+            for (let elem of lineCharts) {
+                const container = elem.parentElement;
+                if (container !== null && typeof container.id === 'string' && container.id !== '') {
+                    containerIds.add(container.id);
+                }
+            }
+
+            const keySuffix = Array.from(containerIds).sort().join('|');
+            if (keySuffix === '') {
+                return null;
+            }
+
+            return `${GROUPED_STORAGE_PREFIX}${keySuffix}`;
+        }
+
+        /**
+         * storeGroupedPreference persists grouped mode for the current chart container.
+         */
+        storeGroupedPreference(lineCharts, isGrouped)
+        {
+            const key = this.groupedPreferenceStorageKey(lineCharts);
+            if (key === null) {
+                return;
+            }
+
+            try {
+                window.localStorage.setItem(key, isGrouped ? '1' : '0');
+            } catch (e) {
+                this.icinga.logger.debug('perfdatagraphs', 'failed to store grouped preference', e);
+            }
+        }
+
+        /**
+         * readGroupedFromStorage reads grouped mode for the current chart container.
+         */
+        readGroupedFromStorage(lineCharts)
+        {
+            const key = this.groupedPreferenceStorageKey(lineCharts);
+            if (key === null) {
+                return null;
+            }
+
+            try {
+                const value = window.localStorage.getItem(key);
+                if (value === null) {
+                    return null;
+                }
+
+                return value !== '0';
+            } catch (e) {
+                this.icinga.logger.debug('perfdatagraphs', 'failed to read grouped preference', e);
+            }
+
+            return null;
         }
 
         /**
