@@ -71,15 +71,23 @@ for this module's chart container only.
 */
 .perfdatagraphs-line-chart {
     .u-legend.u-inline {
-        display: table;
+        display: block;
         width: 100%;
         margin-top: .35em;
-        border-collapse: collapse;
+    }
+
+    .u-legend.u-inline tbody {
+        display: block;
+        max-height: 9.5em;
+        overflow-y: auto;
     }
 
     .u-legend.u-inline tr {
-        display: table-row;
+        display: table;
+        width: 100%;
+        table-layout: fixed;
         margin-right: 0;
+        border-collapse: collapse;
     }
 
     .u-legend.u-inline th,
