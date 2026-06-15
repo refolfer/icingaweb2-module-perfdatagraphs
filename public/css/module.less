@@ -70,6 +70,8 @@ uPlot marks legend with .u-inline by default, so we override that behavior
 for this module's chart container only.
 */
 .perfdatagraphs-line-chart {
+    position: relative;
+
     .u-legend.u-inline {
         display: block;
         width: 100%;
@@ -108,5 +110,63 @@ for this module's chart container only.
 
     .u-legend .u-marker {
         margin-right: .4em;
+    }
+
+    .perfdatagraphs-hover-tooltip {
+        position: absolute;
+        top: 0;
+        left: 0;
+        max-width: 24rem;
+        padding: .45em .6em;
+        border: 1px solid @gray-semilight;
+        .rounded-corners(.25em);
+        background-color: @gray-lighter;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-9999px, -9999px);
+        transition: opacity .08s ease-out;
+        z-index: 3;
+    }
+
+    .perfdatagraphs-hover-tooltip.is-visible {
+        opacity: 1;
+    }
+
+    .perfdatagraphs-hover-tooltip-time {
+        font-weight: 600;
+        margin-bottom: .35em;
+        white-space: nowrap;
+    }
+
+    .perfdatagraphs-hover-tooltip-series {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .perfdatagraphs-hover-tooltip-series tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .perfdatagraphs-hover-tooltip-series th,
+    .perfdatagraphs-hover-tooltip-series td {
+        padding: .12em 0;
+        vertical-align: middle;
+    }
+
+    .perfdatagraphs-hover-tooltip-series th {
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .perfdatagraphs-hover-tooltip-series td.u-value {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        padding-left: .5em;
     }
 }

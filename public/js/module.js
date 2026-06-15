@@ -194,6 +194,7 @@
                             // We need to store the current cursor
                             // to refresh it when the autorefresh hits.
                             this.currentCursor = u.cursor;
+                            this.updateHoverTooltip(u);
                         }
                     ],
                     setSeries: [
@@ -329,6 +330,11 @@
                     // Add the data to the chart
                     u.setData(d);
 
+                    // Add a lightweight hover tooltip for quick value preview.
+                    const hoverTooltip = this.createHoverTooltip();
+                    u._perfdatagraphsHoverTooltip = hoverTooltip;
+                    elem.appendChild(hoverTooltip);
+
                     // If a selection is stored we restore it.
                     if (this.currentSelect !== null) {
                         u.setScale('x', this.currentSelect);
@@ -357,6 +363,144 @@
             }
 
             this.icinga.logger.debug('perfdatagraphs', 'finish renderCharts');
+        }
+
+        /**
+         * createHoverTooltip creates the quick hover preview element.
+         */
+        createHoverTooltip()
+        {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'perfdatagraphs-hover-tooltip';
+            tooltip.setAttribute('aria-hidden', 'true');
+            tooltip.innerHTML = [
+                '<div class="perfdatagraphs-hover-tooltip-time"></div>',
+                '<table class="perfdatagraphs-hover-tooltip-series">',
+                '<tbody></tbody>',
+                '</table>',
+            ].join('');
+
+            return tooltip;
+        }
+
+        /**
+         * updateHoverTooltip renders the currently highlighted values for a chart.
+         */
+        updateHoverTooltip(u)
+        {
+            const tooltip = u._perfdatagraphsHoverTooltip;
+            if (tooltip === undefined || tooltip === null) {
+                return;
+            }
+
+            const cursor = u.cursor ?? {};
+            const idx = this.getCursorIndex(cursor);
+            if (
+                !Number.isFinite(cursor.left)
+                || !Number.isFinite(cursor.top)
+                || cursor.left < 0
+                || cursor.top < 0
+                || idx === null
+            ) {
+                tooltip.classList.remove('is-visible');
+                tooltip.setAttribute('aria-hidden', 'true');
+                return;
+            }
+
+            const timeValue = u.data?.[0]?.[idx];
+            const timeLabel = u.series?.[0]?.value?.(u, timeValue, 0, idx) ?? '';
+            const timeElement = tooltip.querySelector('.perfdatagraphs-hover-tooltip-time');
+            const tbody = tooltip.querySelector('.perfdatagraphs-hover-tooltip-series tbody');
+            if (timeElement === null || tbody === null) {
+                return;
+            }
+
+            timeElement.textContent = timeLabel;
+
+            const rows = [];
+            for (let sidx = 1; sidx < u.series.length; sidx++) {
+                const series = u.series[sidx];
+                if (series === undefined || series.show === false) {
+                    continue;
+                }
+
+                const rawValue = u.data?.[sidx]?.[idx];
+                if (rawValue === null || rawValue === undefined) {
+                    continue;
+                }
+
+                const label = series.label ?? '';
+                const value = series.value?.(u, rawValue, sidx, idx) ?? '';
+                const row = document.createElement('tr');
+
+                const markerCell = document.createElement('th');
+                const marker = document.createElement('span');
+                marker.className = 'u-marker';
+                if (series.stroke !== undefined && series.stroke !== null) {
+                    marker.style.backgroundColor = series.stroke;
+                    marker.style.borderColor = series.stroke;
+                }
+                markerCell.appendChild(marker);
+                markerCell.appendChild(document.createTextNode(label));
+
+                const valueCell = document.createElement('td');
+                valueCell.className = 'u-value';
+                valueCell.textContent = value;
+
+                row.appendChild(markerCell);
+                row.appendChild(valueCell);
+                rows.push(row);
+            }
+
+            tbody.replaceChildren(...rows);
+
+            const tooltipWidth = tooltip.offsetWidth;
+            const tooltipHeight = tooltip.offsetHeight;
+            const chartWidth = u.root?.clientWidth ?? u.bbox.width;
+            const chartHeight = u.root?.clientHeight ?? u.bbox.height;
+            const padding = 12;
+            const left = this.clamp(
+                u.cursor.left + u.bbox.left + padding,
+                padding,
+                Math.max(padding, chartWidth - tooltipWidth - padding)
+            );
+            const top = this.clamp(
+                u.cursor.top + u.bbox.top + padding,
+                padding,
+                Math.max(padding, chartHeight - tooltipHeight - padding)
+            );
+
+            tooltip.style.transform = `translate(${left}px, ${top}px)`;
+            tooltip.classList.add('is-visible');
+            tooltip.setAttribute('aria-hidden', 'false');
+        }
+
+        /**
+         * getCursorIndex resolves the hovered x-index from the cursor state.
+         */
+        getCursorIndex(cursor)
+        {
+            if (Number.isInteger(cursor.idx)) {
+                return cursor.idx;
+            }
+
+            if (Array.isArray(cursor.idxs)) {
+                for (let idx of cursor.idxs) {
+                    if (Number.isInteger(idx)) {
+                        return idx;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * clamp keeps a numeric value within the provided bounds.
+         */
+        clamp(value, min, max)
+        {
+            return Math.min(Math.max(value, min), max);
         }
 
         /**
