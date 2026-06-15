@@ -179,6 +179,8 @@ class PerfdataSource
         // Merge everything into the response.
         // We could have also done this browser-side but decided to do this here
         // because of simpler testability.
+        $response->mergePluginUnits($cvh->getPerfdataUnitsForObject($object));
+
         $customVarsMetrics = $cvh->getPerfdataGraphsMetricsForObject($object);
 
         $response->mergeCustomVars($customVarsMetrics);

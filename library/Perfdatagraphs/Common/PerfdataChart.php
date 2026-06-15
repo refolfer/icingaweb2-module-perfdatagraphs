@@ -185,7 +185,7 @@ trait PerfdataChart
         $cacheDurationInSeconds = $config['cache_lifetime'];
         $h = $isHostCheck ? 'true': 'false';
         // base64 since there can be whatever in the names
-        $cacheKey = base64_encode($hostName . $serviceName . $checkCommandName . $duration . $rangeFrom . $rangeTo . $h);
+        $cacheKey = base64_encode('units-v2' . $hostName . $serviceName . $checkCommandName . $duration . $rangeFrom . $rangeTo . $h);
 
         Benchmark::measure('Rendering performance data elements');
 

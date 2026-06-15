@@ -9,6 +9,7 @@ use Icinga\Module\Icingadb\Common\Database;
 use Icinga\Module\Icingadb\Common\Macros;
 use Icinga\Module\Icingadb\Model\Host;
 use Icinga\Module\Icingadb\Model\Service;
+use Icinga\Module\Icingadb\Util\PerfDataSet;
 
 use ipl\Stdlib\Filter;
 
@@ -161,5 +162,33 @@ class IcingaObjectHelper
         }
 
         return $result[self::CUSTOM_VAR_METRICS] ?? [];
+    }
+
+    /**
+     * Return units from Icinga DB's normalized plugin performance data.
+     */
+    public function getPerfdataUnitsForObject(Model $object): array
+    {
+        $perfdata = $object->state->normalized_performance_data ?? '';
+        if ($perfdata === '') {
+            return [];
+        }
+
+        $units = [];
+        foreach (PerfDataSet::fromString($perfdata) as $metric) {
+            if ($metric->isSeconds()) {
+                $unit = 'seconds';
+            } elseif ($metric->isBytes()) {
+                $unit = 'bytes';
+            } elseif ($metric->isPercentage()) {
+                $unit = 'percentage';
+            } else {
+                $unit = $metric->getUnit() ?? '';
+            }
+
+            $units[$metric->getLabel()] = $unit;
+        }
+
+        return $units;
     }
 }

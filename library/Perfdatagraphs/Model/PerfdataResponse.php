@@ -188,6 +188,53 @@ class PerfdataResponse implements JsonSerializable
     }
 
     /**
+     * Infer units for common normalized plugin metrics that omit a UOM.
+     */
+    protected function inferUnitFromMetricName(string $metric): string
+    {
+        $name = strtolower(trim($metric));
+
+        if (preg_match('/(?:^|[_ .-])bytes?(?:[_ .-]|$)/', $name)) {
+            if (preg_match('/(?:per[_ .-]?second|[_ .-]rate|\/s)(?:[_ .-]|$)/', $name)) {
+                return 'bytes/s';
+            }
+
+            return 'bytes';
+        }
+
+        if (preg_match('/(?:^|[_ .-])(percentage|percent|pct)(?:[_ .-]|$)/', $name)) {
+            return 'percentage';
+        }
+
+        if (preg_match('/(?:^|[_ .-])(uptime|duration|latency|lag|runtime|elapsed|age|time)(?:[_ .-]|$)/', $name)) {
+            return 'seconds';
+        }
+
+        return '';
+    }
+
+    /**
+     * Add units reported by the current plugin output without overriding backend units.
+     */
+    public function mergePluginUnits(array $units): void
+    {
+        foreach ($this->data as $title => $dataset) {
+            if ($dataset->getUnit() !== '') {
+                continue;
+            }
+
+            $unit = $units[$title] ?? '';
+            if ($unit === '') {
+                $unit = $this->inferUnitFromMetricName($title);
+            }
+
+            if ($unit !== '') {
+                $dataset->setUnit($unit);
+            }
+        }
+    }
+
+    /**
      * mergeCustomVars merges the performance data with the custom vars,
      * so that each series receives its corresponding vars.
      * CustomVars override data in the PerfdataSet.

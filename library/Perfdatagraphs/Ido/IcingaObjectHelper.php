@@ -7,6 +7,7 @@ use Icinga\Module\Monitoring\Object\Host;
 use Icinga\Module\Monitoring\Object\Macro;
 use Icinga\Module\Monitoring\Object\MonitoredObject;
 use Icinga\Module\Monitoring\Object\Service;
+use Icinga\Module\Monitoring\Plugin\PerfdataSet;
 
 use Icinga\Exception\NotFoundError;
 
@@ -114,6 +115,37 @@ class IcingaObjectHelper
         }
 
         return $result[self::CUSTOM_VAR_METRICS] ?? [];
+    }
+
+    /**
+     * Return canonical units from the current plugin performance data.
+     */
+    public function getPerfdataUnitsForObject(MonitoredObject $object): array
+    {
+        $perfdata = $object instanceof Service
+            ? ($object->service_perfdata ?? '')
+            : ($object->host_perfdata ?? '');
+
+        if ($perfdata === '') {
+            return [];
+        }
+
+        $units = [];
+        foreach (PerfdataSet::fromString($perfdata) as $metric) {
+            if ($metric->isSeconds()) {
+                $unit = 'seconds';
+            } elseif ($metric->isBytes()) {
+                $unit = 'bytes';
+            } elseif ($metric->isPercentage()) {
+                $unit = 'percentage';
+            } else {
+                $unit = $metric->getUnit() ?? '';
+            }
+
+            $units[$metric->getLabel()] = $unit;
+        }
+
+        return $units;
     }
 
     /**

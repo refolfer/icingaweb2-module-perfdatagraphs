@@ -142,6 +142,31 @@ final class PerfdataResponseTest extends TestCase
         $this->assertEquals($expected, $actual);
     }
 
+    public function test_perfdata_merge_plugin_units()
+    {
+        $pfr = new PerfdataResponse();
+        $pfr->addDataset(new PerfdataSet('response_time'));
+        $pfr->addDataset(new PerfdataSet('disk_used'));
+        $pfr->addDataset(new PerfdataSet('temperature', 'C'));
+        $pfr->addDataset(new PerfdataSet('uptime'));
+        $pfr->addDataset(new PerfdataSet('sum_bytes_sent_per_second'));
+        $pfr->addDataset(new PerfdataSet('free_memory_percentage'));
+
+        $pfr->mergePluginUnits([
+            'response_time' => 'seconds',
+            'disk_used' => 'bytes',
+            'temperature' => 'K',
+            'uptime' => '',
+        ]);
+
+        $this->assertSame('seconds', $pfr->getDataset('response_time')->getUnit());
+        $this->assertSame('bytes', $pfr->getDataset('disk_used')->getUnit());
+        $this->assertSame('C', $pfr->getDataset('temperature')->getUnit());
+        $this->assertSame('seconds', $pfr->getDataset('uptime')->getUnit());
+        $this->assertSame('bytes/s', $pfr->getDataset('sum_bytes_sent_per_second')->getUnit());
+        $this->assertSame('percentage', $pfr->getDataset('free_memory_percentage')->getUnit());
+    }
+
     public function test_perfdata_isvalid()
     {
         $pfr = new PerfdataResponse();
