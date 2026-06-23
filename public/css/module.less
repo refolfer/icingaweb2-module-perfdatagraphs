@@ -65,6 +65,40 @@ ul.quick-actions {
 }
 
 /*
+Force the custom range date inputs to follow the active theme in dark mode.
+This has to live in module.less because quick-actions.less is only loaded in
+older deployments without icingadb.
+*/
+.quick-actions-custom-range input[type="date"] {
+    min-height: 2em;
+    background: @low-sat-blue !important;
+    background-color: @low-sat-blue !important;
+    border: 1px solid @gray-light !important;
+    color: @text-color !important;
+    -webkit-text-fill-color: @text-color !important;
+    color-scheme: dark;
+    appearance: none;
+    -webkit-appearance: none;
+
+    &::-webkit-calendar-picker-indicator {
+        filter: invert(1) opacity(.85);
+    }
+
+    &::-webkit-datetime-edit {
+        color: @text-color !important;
+        -webkit-text-fill-color: @text-color !important;
+    }
+
+    &::-webkit-datetime-edit-text,
+    &::-webkit-datetime-edit-month-field,
+    &::-webkit-datetime-edit-day-field,
+    &::-webkit-datetime-edit-year-field {
+        color: @text-color !important;
+        -webkit-text-fill-color: @text-color !important;
+    }
+}
+
+/*
 Render values below charts as a proper table instead of inline floating groups.
 uPlot marks legend with .u-inline by default, so we override that behavior
 for this module's chart container only.
